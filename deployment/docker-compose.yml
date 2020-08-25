@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  django:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+    image: ${IMAGE_ROOT}/django
+    command: gunicorn app.wsgi:application --bind 0.0.0.0:8000
+    ports:
+      - 8000:8000
+    env_file: .env

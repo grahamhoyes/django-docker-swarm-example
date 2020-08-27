@@ -35,6 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [checks]
     if: github.ref == 'refs/heads/master'
+
     steps:
       - uses: actions/checkout@v2
       - name: Build image
@@ -49,6 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [checks, build]
     if: github.ref == 'refs/heads/master'
+    defaults:
+      run:
+        working-directory: deployment
+
     steps:
       - uses: actions/checkout@v2
       - name: Set environment variables in .env
@@ -60,11 +65,23 @@ jobs:
           echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> deployment/.env
           echo 'DB_HOST=${{ secrets.DB_HOST }}' >> deployment/.env
           echo 'DB_PORT=${{ secrets.DB_PORT }}' >> deployment/.env
+      - name: Substitute IMAGE_ROOT in compose file
+        run: |
+          cat docker-compose.prod.yml | sed "s,\${IMAGE_ROOT},${IMAGE_ROOT},g" > docker-compose.prod.yml
       - name: Transfer deployment files to the Swarm manager
         uses: appleboy/scp-action@v0.1.1
         with:
           host: ${{ secrets.SWARM_MANAGER_IP }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "deployment/.env,deployment/docker-compose.prod.yml"
+          source: ".env,docker-compose.prod.yml"
           target: "/usr/src/${{ github.repository }}"
+      - name: Bring up deployment
+        uses: appleboy/ssh-action@v0.1.3
+        with:
+          host: ${{ secrets.SWARM_MANAGER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /usr/src/${{ github.repository }}
+            docker-compose -f docker-compose.prod.yml up -d

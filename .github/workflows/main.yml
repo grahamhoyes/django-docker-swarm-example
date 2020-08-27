@@ -68,6 +68,10 @@ jobs:
       - name: Substitute IMAGE_ROOT in compose file
         run: |
           cat docker-compose.prod.yml | sed "s,\${IMAGE_ROOT},${IMAGE_ROOT},g" > docker-compose.prod.yml
+      - name: Sanity check
+        run: |
+          pwd
+          ls
       - name: Transfer deployment files to the Swarm manager
         uses: appleboy/scp-action@v0.1.1
         with:

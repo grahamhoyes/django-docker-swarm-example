@@ -71,14 +71,15 @@ jobs:
       - name: Sanity check
         run: |
           pwd
-          ls
+          ls -al
       - name: Transfer deployment files to the Swarm manager
         uses: appleboy/scp-action@v0.1.1
         with:
           host: ${{ secrets.SWARM_MANAGER_IP }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: ".env,docker-compose.prod.yml"
+          overwrite: true
+          source: "deployment/.env,deployment/docker-compose.prod.yml"
           target: "/usr/src/${{ github.repository }}"
       - name: Bring up deployment
         uses: appleboy/ssh-action@v0.1.3

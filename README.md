@@ -94,6 +94,25 @@ $ docker swarm init --advertise-addr <ip_addess>
 
 `<ip_address>` is required, even if we don't plan on attaching other nodes at this stage. It should be set to an IP on your private or internal network, not the public IP your server is accessible on.
 
+### SSH Keys
+Since we do not expose the Docker API, deploying happens by transferring compose files to the server over SCP, and running the deploy command over SSH. We'll need on SSH key to do that, so on the server run:
+
+```bash
+$ ssh-keygen -t rsa -b 4096 -C "you@example.com"
+```
+
+If you want to save the file somewhere other that `~/.ssh/id_rsa.pub` you may do so, and update the commands below accordingly.
+
+Add the public key to the server's authorized keys:
+
+```bash
+$ cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+```
+
+Make note of which user's `authorized_keys` file you added the public key to (i.e. who you were logged in as), as this will be the user that deployment happens through. The user will need to have appropriate docker permissions. Set this user in the `SSH_USER` GitHub secret (see below).
+
+Copy the full contents of the SSH public key into the `SSH_PRIVATE_KEY` secret key on GitHub (see below). Copy the entire key, including the begin and end messages.
+
 ## Secrets
 Sensitive credentials, such as the database username and password, are stored in GitHub repository secrets. See [Creating and storing encrypted secrets](https://docs.github.com/en/actions/configuring-and-managing-workflows/creating-and-storing-encrypted-secrets) for more information on how to setup secrets.
 
@@ -107,4 +126,7 @@ Setup the following secrets:
 | `DB_PASSWORD` | Database password, set during user creation |
 | `DB_HOST` | Database host. If postgres is running natively on the same server as the single Swarm node, this should be `127.0.0.1`. |
 | `DB_PORT` | Database port. For postgres, the default is `5432`. |
+| `SWARM_MANAGER_IP` | Public IP of the Swarm manager node that we can ssh to. Note that this is not the same as the IP address provided to `--advertise-addr` when initializing the swarm.
+| `SSH_USER` | User to SSH over and deploy as |
+| `SSH_PRIVATE_KEY` | SSH private key, generated above. Must correspond to the `SSH_USER`. |
 

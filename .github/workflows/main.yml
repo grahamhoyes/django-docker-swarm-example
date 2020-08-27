@@ -46,5 +46,10 @@ jobs:
           echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> deployment/.env
           echo 'DB_HOST=${{ secrets.DB_HOST }}' >> deployment/.env
           echo 'DB_PORT=${{ secrets.DB_PORT }}' >> deployment/.env
-      - name: Build
+      - name: Build image
         run: docker-compose -f deployment/docker-compose.yml build
+      - name: Authenticate Docker with GitHub Packages
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
+      - name: Push image
+        run: docker-compose -f deployment/docker-compose.yml push

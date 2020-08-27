@@ -10,7 +10,7 @@ This project does not:
 ## Credits
 The following resources were a great help in developing this example:
 - https://github.com/testdrivenio/django-github-digitalocean
-
+- https://docs.github.com/en/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages
 
 ## Running locally
 Configurations for running locally are within the [development](development) folder.

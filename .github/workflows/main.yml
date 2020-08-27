@@ -86,7 +86,10 @@ jobs:
           host: ${{ secrets.SWARM_MANAGER_IP }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          envs: GITHUB_ACTOR
           script: |
+            echo $GITHUB_ACTOR > github-actor.txt
             cd /usr/src/${{ github.repository }}
             echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
             docker-compose -f docker-compose.prod.yml up -d

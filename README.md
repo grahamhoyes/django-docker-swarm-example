@@ -41,12 +41,48 @@ Create a server using your cloud provider of choice. For this example, I am usin
 SSH into the machine, and follow the steps below. Note that we assume you will be running the deployments using the user you ssh in with. If you wish to use a dedicated user for automated deploys, ssh in with that user below. The user must have docker privileges.
 
 ### Install Postgres
+Check the [postgres download page](https://www.postgresql.org/download/linux/ubuntu/) for the latest installation instructions. Included below are the instructions for postgres 12, the latest version as of the time of writing.
+
+Create the repository configuration:
+
+```bash
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+```
+
+Import the repository signing key:
+
+```bash
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+```
+
 Refresh the local package index, then install postgres and utilities:
 
 ```bash
 $ sudo apt update
 $ sudo apt install postgresql postgresql-contrib
 ```
+
+By default, postgres only allows connections over localhost. To access it from within docker containers, it must also listen for connections on the Docker bridge. Usually this is on `172.17.0.1`, you can run `ip a` to confirm. 
+
+Postgres' configuration file is at `/etc/postgresql/<version>/main/postgresql.conf`, where `<version>` is the postgres version you installed (12 is the latest at the time of writing). Look for the line containing `listen_address`, which by default will be commented out:
+
+```bash
+$ grep -n listen_address postgresql.conf 
+59:#listen_addresses = 'localhost'              # what IP address(es) to listen on;
+```
+
+Open up the file in your editor of choice, uncomment the line, and add `172.17.0.1` to the list:
+
+```
+listen_addresses = 'localhost,172.17.0.1'
+```
+
+Reload postgres fro the changes to take effect:
+
+```bash
+$ sudo systemctl reload postgresql
+```
+
 
 Postgres, by default, requires you to be the `postgres` user/role in order to connect. Switch into the `postgres` user:
 
@@ -137,7 +173,7 @@ Setup the following secrets:
 | `DB_NAME` | Database name. `djangodb` in this example. |
 | `DB_USER` | Database user. `djangouser` in this example. |
 | `DB_PASSWORD` | Database password, set during user creation |
-| `DB_HOST` | Database host. If postgres is running natively on the same server as the single Swarm node, this should be `127.0.0.1`. |
+| `DB_HOST` | Database host. If postgres is running natively on the same server as the single Swarm node, this should be `172.17.0.1`. |
 | `DB_PORT` | Database port. For postgres, the default is `5432`. |
 | `SWARM_MANAGER_IP` | Public IP of the Swarm manager node that we can ssh to. Note that this is not the same as the IP address provided to `--advertise-addr` when initializing the swarm.
 | `SSH_USER` | User to SSH over and deploy as |

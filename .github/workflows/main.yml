@@ -59,12 +59,12 @@ jobs:
       - name: Set environment variables in .env
         run: |
           echo 'DEBUG=0' >> .env
-          echo 'SECRET_KEY=${{ secrets.SECRET_KEY }}' >> deployment/.env
-          echo 'DB_NAME=${{ secrets.DB_NAME }}' >> deployment/.env
-          echo 'DB_USER=${{ secrets.DB_USER }}' >> deployment/.env
-          echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> deployment/.env
-          echo 'DB_HOST=${{ secrets.DB_HOST }}' >> deployment/.env
-          echo 'DB_PORT=${{ secrets.DB_PORT }}' >> deployment/.env
+          echo 'SECRET_KEY=${{ secrets.SECRET_KEY }}' >> .env
+          echo 'DB_NAME=${{ secrets.DB_NAME }}' >> .env
+          echo 'DB_USER=${{ secrets.DB_USER }}' >> .env
+          echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env
+          echo 'DB_HOST=${{ secrets.DB_HOST }}' >> .env
+          echo 'DB_PORT=${{ secrets.DB_PORT }}' >> .env
       - name: Substitute IMAGE_ROOT in compose file
         run: |
           cat docker-compose.prod.yml | sed "s,\${IMAGE_ROOT},${IMAGE_ROOT},g" > docker-compose.prod.yml

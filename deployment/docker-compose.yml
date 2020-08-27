@@ -1,10 +1,10 @@
-version: "3"
+version: "3.8"
 
 services:
   django:
     build:
-      context: ../app
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ./deployment/Dockerfile
     image: ${IMAGE_ROOT}/django
     command: gunicorn app.wsgi:application --bind 0.0.0.0:8000
     ports:

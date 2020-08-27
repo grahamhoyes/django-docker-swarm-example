@@ -38,12 +38,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build image
-        run: docker-compose -f deployment/docker-compose.yml build
+        run: docker-compose -f deployment/docker-compose.ci.yml build
       - name: Authenticate Docker with GitHub Packages
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
       - name: Push image
-        run: docker-compose -f deployment/docker-compose.yml push
+        run: docker-compose -f deployment/docker-compose.ci.yml push
 
   deploy:
     runs-on: ubuntu-latest

@@ -91,5 +91,6 @@ jobs:
           script: |
             echo $GITHUB_ACTOR > github-actor.txt
             cd /usr/src/${{ github.repository }}
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
             docker-compose -f docker-compose.prod.yml up -d
+            docker logout docker.pkg.github.com

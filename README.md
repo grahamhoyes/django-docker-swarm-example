@@ -38,7 +38,7 @@ Once both containers are up, you can access the server at http://localhost:8000/
 ## Deployment Setup
 Create a server using your cloud provider of choice. For this example, I am using a Digital Ocean droplet running Ubuntu 18.04 with 1 GB of RAM and 1 vCPU. 
 
-SSH into the machine, and follow the steps below.
+SSH into the machine, and follow the steps below. Note that we assume you will be running the deployments using the user you ssh in with. If you wish to use a dedicated user for automated deploys, ssh in with that user below. The user must have docker privileges.
 
 ### Install Postgres
 Refresh the local package index, then install postgres and utilities:
@@ -86,6 +86,17 @@ $ psql -d djangodb -h 127.0.0.1 -U djangouser
 
 ### Install Docker
 Install Docker Engine by following the steps in the [Docker documentation](https://docs.docker.com/engine/install/ubuntu/).
+
+#### Credentials Setup
+In order to pull images from GitHub packages, we will need to run `docker login` as part of the deployment process. We will be using Docker's default credentials configuration for simplicity, which is to store credentials in plain text in `~/.docker/config.json`. 
+
+In order for credentials to work, we still need to install gnupg2 and [pass](https://www.passwordstore.org/):
+
+```bash
+$ sudo apt install gnupg2 pass 
+```
+
+If you would like to continue setting up a proper credentials store, you can read about [credentials stores](https://docs.docker.com/engine/reference/commandline/login/#credentials-store). If you have confidence in the security of the server you are deploying to such that nobody can access the plaintext credentials, you may skip this step, but it is recommended to have a secure credentials store.
 
 ### Create the Swarm
 In this example, we will be working on a single-node swarm. For a full example of how to create a swarm and attach worker nodes, follow the [Docker Swarm tutorial](https://docs.docker.com/engine/swarm/swarm-tutorial/create-swarm/).

@@ -62,7 +62,7 @@ $ sudo apt update
 $ sudo apt install postgresql postgresql-contrib
 ```
 
-By default, postgres only allows connections over localhost. To access it from within docker containers, it must also listen for connections on the Docker bridge. Usually this is on `172.17.0.1`, you can run `ip a` to confirm. 
+By default, postgres only allows connections over localhost. To access it from within docker containers, it must also listen for connections on the Docker bridge. In swarm mode, Docker creates a bridge network called `docker_gwbridge`, usually on `172.18.0.0/16`. You can inspect the network with `docker network inspect docker_gwbridge` to confirm.
 
 Postgres' configuration file is at `/etc/postgresql/<version>/main/postgresql.conf`, where `<version>` is the postgres version you installed (12 is the latest at the time of writing). Look for the line containing `listen_address`, which by default will be commented out:
 
@@ -71,16 +71,24 @@ $ grep -n listen_address postgresql.conf
 59:#listen_addresses = 'localhost'              # what IP address(es) to listen on;
 ```
 
-Open up the file in your editor of choice, uncomment the line, and add `172.17.0.1` to the list:
+Open up the file in your editor of choice, uncomment the line, and add `172.18.0.1` to the list:
 
 ```
-listen_addresses = 'localhost,172.17.0.1'
+listen_addresses = 'localhost,172.18.0.1'
 ```
 
-Reload postgres fro the changes to take effect:
+This host also needs to be added to the client authentication configuration file in `/etc/postgresql/<version>/main/pg_hba.conf`. Add the following under `# IPv4 local connections`:
+
+```
+host    all             all             172.18.0.1/16           md5
+```
+
+The second column is the database and the third is the user, you may change them if desired.
+
+Restart postgres for the changes to take effect:
 
 ```bash
-$ sudo systemctl reload postgresql
+$ sudo service postgresql restart
 ```
 
 
@@ -172,10 +180,10 @@ Setup the following secrets:
 | `SECRET_KEY` | The Django [secret key](https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-SECRET_KEY) |
 | `DB_NAME` | Database name. `djangodb` in this example. |
 | `DB_USER` | Database user. `djangouser` in this example. |
-| `DB_PASSWORD` | Database password, set during user creation |
-| `DB_HOST` | Database host. If postgres is running natively on the same server as the single Swarm node, this should be `172.17.0.1`. |
+| `DB_PASSWORD` | Database password, set during user creation. |
+| `DB_HOST` | Database host. If postgres is running natively on the same server as the single Swarm node, this should be `172.18.0.1`. |
 | `DB_PORT` | Database port. For postgres, the default is `5432`. |
-| `SWARM_MANAGER_IP` | Public IP of the Swarm manager node that we can ssh to. Note that this is not the same as the IP address provided to `--advertise-addr` when initializing the swarm.
-| `SSH_USER` | User to SSH over and deploy as |
+| `SWARM_MANAGER_IP` | Public IP of the Swarm manager node that we can ssh to. Note that this is not the same as the IP address provided to `--advertise-addr` when initializing the swarm. |
+| `SSH_USER` | User to SSH over and deploy as. |
 | `SSH_PRIVATE_KEY` | SSH private key, generated above. Must correspond to the `SSH_USER`. |
 

@@ -151,6 +151,15 @@ Create a config file in `/etc/apache2/sites-available/`, for example `/etc/apach
     ProxyPass /static/ !
     ProxyPass /media/ !
     ProxyPass / http://localhost:8000/
+    ProxyPassReverse / http://django-swarm-example.grahamhoyes.com/
+
+    # The folder below is decided by the github workflow, and can be changed
+    Alias /static /usr/src/grahamhoyes/django-docker-swarm-example/static
+
+    <Directory /usr/src/grahamhoyes/django-docker-swarm-example/static>
+        AllowOverride All
+        Require all granted
+    </Directory>
 </VirtualHost>
 ```
 
@@ -226,3 +235,5 @@ Setup the following secrets:
 | `SSH_USER` | User to SSH over and deploy as. |
 | `SSH_PRIVATE_KEY` | SSH private key, generated above. Must correspond to the `SSH_USER`. |
 
+## The workflow
+The GitHub workflow that runs checks, builds, and deploys is in [.github/workflows/main.yml](.github/workflows/main.yml).

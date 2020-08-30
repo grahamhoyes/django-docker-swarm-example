@@ -114,6 +114,8 @@ USE_L10N = True
 
 USE_TZ = True
 
+# Script Name
+FORCE_SCRIPT_NAME = "mysite"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/

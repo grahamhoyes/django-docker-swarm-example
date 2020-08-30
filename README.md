@@ -1,6 +1,14 @@
 # Django Docker Swarm Example
 An example project for deploying Django on Docker Swarm.
 
+This is primarily a playground and documentation for [IEEE UofT's](https://ieee.utoronto.ca/) deployment needs to server our [hackathon template](https://github.com/ieeeuoft/hackathon-template). As such, the requirements are:
+- Runs on a single server, but the option to add more nodes in the future is preferred
+- Postgres is installed natively on the server
+- Apache is installed natively on the server, handling SSL and static file serving
+- The application should be deployed as a docker container that Apache can reverse proxy to
+- Multiple independent instances must be possible (for multiple events)
+- Applications must be able to run under a sub-folder of the website, ie ieee.utoronto.ca/event1, ieee.utoronto.ca/event2
+
 This project walks through installing a postgres server, docker engine, and initializing Docker Swarm on a single machine (i.e., we will be creating a Swarm cluster with a single node). 
 
 This project does not:

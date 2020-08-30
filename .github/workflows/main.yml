@@ -64,7 +64,6 @@ jobs:
       - name: Install dependencies
         working-directory: app
         run: |
-          cd app
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Collect static

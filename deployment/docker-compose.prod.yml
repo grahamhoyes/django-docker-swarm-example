@@ -3,7 +3,7 @@ version: "3.8"
 services:
   django:
     image: {{IMAGE_ROOT}}/django:{{GITHUB_SHA_SHORT}}
-    command: gunicorn app.wsgi:application --bind 0.0.0.0:8000 --capture-output
+    command: gunicorn app.wsgi:application --bind 0.0.0.0:8000 --capture-output --access-logfile -
     ports:
       - 8000:8000
     env_file: .env

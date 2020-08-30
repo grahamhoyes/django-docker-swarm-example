@@ -36,9 +36,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [checks]
     if: github.ref == 'refs/heads/master'
+    outputs:
+      sha7: ${{ steps.sha7.outputs.github_sha_short }}
 
     steps:
       - uses: actions/checkout@v2
+      - name: Get short SHA
+        id: sha7
+        run: |
+          echo "::set-env name=GITHUB_SHA_SHORT::$(echo ${GITHUB_SHA} | cut -c1-7)"
+          echo "::set-output name=github_sha_short::${{ env.GITHUB_SHA_SHORT }}"
       - name: Build image
         run: docker-compose -f deployment/docker-compose.ci.yml build
       - name: Authenticate Docker with GitHub Packages
@@ -54,6 +61,8 @@ jobs:
     defaults:
       run:
         working-directory: deployment
+    env:
+      GITHUB_SHA_SHORT: ${{ needs.build.outputs.sha7 }}
 
     steps:
       - uses: actions/checkout@v2
@@ -80,10 +89,13 @@ jobs:
           echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env
           echo 'DB_HOST=${{ secrets.DB_HOST }}' >> .env
           echo 'DB_PORT=${{ secrets.DB_PORT }}' >> .env
-      - name: Substitute IMAGE_ROOT in compose file
+      - name: Substitute variables in compose file
         run: |
           cp docker-compose.prod.yml docker-compose.prod.tmp.yml
-          cat docker-compose.prod.tmp.yml | sed "s,\${IMAGE_ROOT},${IMAGE_ROOT},g" > docker-compose.prod.yml
+          cat docker-compose.prod.tmp.yml \
+            | sed "s,{{IMAGE_ROOT}},${IMAGE_ROOT},g" \
+            | sed "s,{{GITHUB_SHA_SHORT}},${GITHUB_SHA_SHORT},g" \
+            > docker-compose.prod.yml
       - name: Transfer deployment and static files to the Swarm manager
         uses: appleboy/scp-action@v0.1.1
         with:
@@ -102,9 +114,10 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
-          envs: GITHUB_ACTOR,GITHUB_SHA,STACK_NAME
+          envs: GITHUB_ACTOR,STACK_NAME
           script: |
             cd /usr/src/${{ github.repository }}
+            printenv > env.txt
             echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
             docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${STACK_NAME}
             docker logout docker.pkg.github.com

@@ -5,7 +5,4 @@ services:
     build:
       context: ..
       dockerfile: ./deployment/Dockerfile
-    image: ${IMAGE_ROOT}/django
-    command: gunicorn app.wsgi:application --bind 0.0.0.0:8000
-    ports:
-      - 8000:8000
+    image: ${IMAGE_ROOT}/django:${GITHUB_SHA}

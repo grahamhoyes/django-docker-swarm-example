@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   django:
-    image: ${IMAGE_ROOT}/django
+    image: ${IMAGE_ROOT}/django:${GITHUB_SHA}
     command: gunicorn app.wsgi:application --bind 0.0.0.0:8000
     ports:
       - 8000:8000

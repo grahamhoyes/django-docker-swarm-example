@@ -6,7 +6,7 @@ on:
 
 env:
   IMAGE_ROOT: docker.pkg.github.com/${{ github.repository }}
-  STACK_NAME: django-test
+  STACK_NAME: django-swarm-example
 
 jobs:
   checks:
@@ -92,5 +92,5 @@ jobs:
           script: |
             cd /usr/src/${{ github.repository }}
             echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
-            docker stack deploy -c docker-compose.prod.yml ${STACK_NAME}
+            docker stack deploy -c docker-compose.prod.yml --with-registry-auth ${STACK_NAME}
             docker logout docker.pkg.github.com

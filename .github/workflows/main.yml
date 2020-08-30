@@ -6,6 +6,7 @@ on:
 
 env:
   IMAGE_ROOT: docker.pkg.github.com/${{ github.repository }}
+  STACK_NAME: django-test
 
 jobs:
   checks:
@@ -87,10 +88,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
-          envs: GITHUB_ACTOR
+          envs: GITHUB_ACTOR,STACK_NAME
           script: |
-            echo $GITHUB_ACTOR > github-actor.txt
             cd /usr/src/${{ github.repository }}
             echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
-            docker-compose -f docker-compose.prod.yml up -d
+            docker stack deploy -c docker-compose.prod.yml ${STACK_NAME}
             docker logout docker.pkg.github.com

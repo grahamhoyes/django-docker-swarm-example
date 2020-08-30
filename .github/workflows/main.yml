@@ -37,20 +37,20 @@ jobs:
     needs: [checks]
     if: github.ref == 'refs/heads/master'
     outputs:
-      sha7: ${{ steps.sha7.outputs.github_sha_short }}
+      GITHUB_SHA_SHORT: ${{ steps.sha7.outputs.GITHUB_SHA_SHORT }}
 
     steps:
       - uses: actions/checkout@v2
       - name: Get short SHA
         id: sha7
         run: |
-          echo "::set-env name=GITHUB_SHA_SHORT::$(echo ${GITHUB_SHA} | cut -c1-7)"
-          echo "::set-output name=github_sha_short::${{ env.GITHUB_SHA_SHORT }}"
+          echo "::set-env name=GITHUB_SHA_SHORT::$(echo ${{ github.sha }}} | cut -c1-7)"
+          echo "::set-output name=GITHUB_SHA_SHORT::${{ env.GITHUB_SHA_SHORT }}"
       - name: Build image
         run: docker-compose -f deployment/docker-compose.ci.yml build
       - name: Authenticate Docker with GitHub Packages
         run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u ${{ github.actor }} --password-stdin
       - name: Push image
         run: docker-compose -f deployment/docker-compose.ci.yml push
 
@@ -61,8 +61,6 @@ jobs:
     defaults:
       run:
         working-directory: deployment
-    env:
-      GITHUB_SHA_SHORT: ${{ needs.build.outputs.sha7 }}
 
     steps:
       - uses: actions/checkout@v2
@@ -93,8 +91,8 @@ jobs:
         run: |
           cp docker-compose.prod.yml docker-compose.prod.tmp.yml
           cat docker-compose.prod.tmp.yml \
-            | sed "s,{{IMAGE_ROOT}},${IMAGE_ROOT},g" \
-            | sed "s,{{GITHUB_SHA_SHORT}},${GITHUB_SHA_SHORT},g" \
+            | sed "s,{{IMAGE_ROOT}},${{ env.IMAGE_ROOT }},g" \
+            | sed "s,{{GITHUB_SHA_SHORT}},${{ needs.build.outputs.GITHUB_SHA_SHORT }},g" \
             > docker-compose.prod.yml
       - name: Transfer deployment and static files to the Swarm manager
         uses: appleboy/scp-action@v0.1.1
@@ -114,10 +112,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
-          envs: GITHUB_ACTOR,STACK_NAME
           script: |
             cd /usr/src/${{ github.repository }}
-            printenv > env.txt
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${GITHUB_ACTOR} --password-stdin
-            docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${STACK_NAME}
+            echo 'actor=${{ github.actor }}' >> secrets.txt
+            echo 'token=${{ secrets.GITHUB_TOKEN }}' >> secrets.txt
+            echo 'stack_name=${{ env.STACK_NAME }}
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+            docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
             docker logout docker.pkg.github.com

@@ -15,9 +15,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from app.views import home
+from app.views import home, CoolDogView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", home),
+    path("", home, name="home"),
+    path("a/cool/dog/", CoolDogView.as_view()),
 ]

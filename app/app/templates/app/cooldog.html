@@ -1,0 +1,13 @@
+{% load static %}
+
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <title>A cool dog</title>
+    </head>
+    <body>
+        <img src="{% static "app/dog.jpg" %}" alt="Cool dog" style="max-height:90vh; max-width: 90vh" />
+        <p>Image source: <a href="https://unsplash.com/photos/FbG7KdgPSjs">Nikolay Tchaouchev</a></p>
+        <a href="{% url "home" %}">Go home</a>
+    </body>
+</html>

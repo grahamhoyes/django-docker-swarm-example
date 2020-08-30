@@ -116,7 +116,7 @@ USE_TZ = True
 
 # Proxy things
 # FORCE_SCRIPT_NAME = "/mysite"
-# USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_HOST = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/

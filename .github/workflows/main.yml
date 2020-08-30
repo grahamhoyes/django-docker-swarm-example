@@ -87,8 +87,6 @@ jobs:
           echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env
           echo 'DB_HOST=${{ secrets.DB_HOST }}' >> .env
           echo 'DB_PORT=${{ secrets.DB_PORT }}' >> .env
-      - name: Print what's going on in needs
-        run: echo "${{ toJson(needs.build.outputs) }}"
       - name: Substitute variables in compose file
         run: |
           cp docker-compose.prod.yml docker-compose.prod.tmp.yml
@@ -116,9 +114,6 @@ jobs:
           script_stop: true
           script: |
             cd /usr/src/${{ github.repository }}
-            echo 'actor=${{ github.actor }}' >> secrets.txt
-            echo 'token=${{ secrets.GITHUB_TOKEN }}' >> secrets.txt
-            echo 'stack_name=${{ env.STACK_NAME }}' >> secrets.txt
             echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
             docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
             docker logout docker.pkg.github.com

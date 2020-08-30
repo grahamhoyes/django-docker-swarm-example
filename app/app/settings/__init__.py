@@ -115,7 +115,7 @@ USE_L10N = True
 USE_TZ = True
 
 # Proxy things
-# FORCE_SCRIPT_NAME = "/mysite"
+FORCE_SCRIPT_NAME = "/mysite"
 USE_X_FORWARDED_HOST = True
 
 # Static files (CSS, JavaScript, Images)

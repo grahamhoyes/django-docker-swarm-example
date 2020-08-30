@@ -128,6 +128,45 @@ To confirm that the database and user were created correctly, launch a psql shel
 $ psql -d djangodb -h 127.0.0.1 -U djangouser
 ```
 
+### Install Apache
+Apache will run on the host, and will handle static file serving and as a reverse proxy to the swarm cluster. Install apache2:
+
+```bash
+$ sudo apt install apache2
+```
+
+Enable the proxy module, and restart apache:
+
+```bash
+$ sudo a2enmod proxy_http
+$ sudo systemctl restart apache2
+```
+
+At this point, it is helpful, but not required, to have a domain. This example uses `django-swarm-example.grahamhoyes.com`, which you may substitute for your own domain. SSL is not covered in this tutorial, but should be used in production. If not using SSL, you may substitute the domain name below with the public IP address of your server. Whichever approach you go, make sure to included it in `ALLOWED_HOSTS` of the [Django settings file](/app/app/settings/__init__.py).
+
+Create a config file in `/etc/apache2/sites-available/`, for example `/etc/apache2/sites-available/django-swarm-example.conf`:
+
+```
+<VirtualHost django-swarm-example.grahamhoyes.com:80>
+    ProxyPass /static/ !
+    ProxyPass /media/ !
+    ProxyPass / http://localhost:8000/
+</VirtualHost>
+```
+
+Disable the default apache site, and enable the one you just created:
+
+```bash
+$ sudo a2dissite 000-default.conf
+$ sudo a2ensite django-swarm-example.conf
+```
+
+Reload apache for the changes to take effect:
+
+```bash
+$ sudo systemctl reload apache2
+```
+
 ### Install Docker
 Install Docker Engine by following the steps in the [Docker documentation](https://docs.docker.com/engine/install/ubuntu/).
 

@@ -44,8 +44,8 @@ jobs:
       - name: Get short SHA
         id: sha7
         run: |
-          echo "::set-env name=GITHUB_SHA_SHORT::$(echo ${{ github.sha }}} | cut -c1-7)"
-          echo "::set-output name=GITHUB_SHA_SHORT::${{ env.GITHUB_SHA_SHORT }}"
+          echo "::set-env name=GITHUB_SHA_SHORT::$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "::set-output name=GITHUB_SHA_SHORT::$(echo ${{ github.sha }} | cut -c1-7)"
       - name: Build image
         run: docker-compose -f deployment/docker-compose.ci.yml build
       - name: Authenticate Docker with GitHub Packages

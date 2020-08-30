@@ -57,6 +57,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        working-directory: app
+        run: |
+          cd app
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Collect static
+        working-directory: app
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: python manage.py collectstatic
       - name: Set environment variables in .env
         run: |
           echo 'DEBUG=0' >> .env
@@ -70,7 +85,7 @@ jobs:
         run: |
           cp docker-compose.prod.yml docker-compose.prod.tmp.yml
           cat docker-compose.prod.tmp.yml | sed "s,\${IMAGE_ROOT},${IMAGE_ROOT},g" > docker-compose.prod.yml
-      - name: Transfer deployment files to the Swarm manager
+      - name: Transfer deployment and static files to the Swarm manager
         uses: appleboy/scp-action@v0.1.1
         with:
           host: ${{ secrets.SWARM_MANAGER_IP }}
@@ -78,7 +93,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           overwrite: true
           # scp-action doesn't obey working-directory, runs at repo root
-          source: "deployment/.env,deployment/docker-compose.prod.yml"
+          source: "deployment/.env,deployment/docker-compose.prod.yml,app/static/"
           target: "/usr/src/${{ github.repository }}"
           strip_components: 1
       - name: Bring up deployment

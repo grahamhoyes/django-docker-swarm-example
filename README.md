@@ -147,6 +147,7 @@ Enable the proxy module, and restart apache:
 
 ```bash
 $ sudo a2enmod proxy_http
+$ sudo a2enmod headers
 $ sudo systemctl restart apache2
 ```
 

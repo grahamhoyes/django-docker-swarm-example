@@ -115,10 +115,10 @@ USE_L10N = True
 USE_TZ = True
 
 # Proxy things
-FORCE_SCRIPT_NAME = None
+# FORCE_SCRIPT_NAME = None
 
 if not DEBUG:
-    FORCE_SCRIPT_NAME = "/mysite"
+    # FORCE_SCRIPT_NAME = "/mysite"
     USE_X_FORWARDED_HOST = True
 
 # Static files (CSS, JavaScript, Images)
@@ -127,6 +127,6 @@ if not DEBUG:
 STATIC_URL = "/static/"
 
 if not DEBUG:
-    STATIC_URL = FORCE_SCRIPT_NAME + STATIC_URL
+    STATIC_URL = "/mysite" + STATIC_URL
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")

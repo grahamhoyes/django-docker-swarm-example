@@ -126,7 +126,7 @@ USE_TZ = True
 
 # Per this patch, this should be prepended with SCRIPT_NAME in production
 # https://github.com/django/django/pull/11564
-STATIC_URL = "/static/"
+STATIC_URL = "static/"
 
 # if not DEBUG:
 #     STATIC_URL = FORCE_SCRIPT_NAME + STATIC_URL

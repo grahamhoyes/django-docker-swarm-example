@@ -130,3 +130,35 @@ if not DEBUG:
     STATIC_URL = "/mysite" + STATIC_URL
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "django.server": {
+            "()": "django.utils.log.ServerFormatter",
+            "format": "[%(server_time)s] %(message)s",
+        }
+    },
+    "handlers": {
+        "console": {"level": "INFO", "class": "logging.StreamHandler",},
+        "django.server": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "django.server",
+        },
+    },
+    "loggers": {
+        "django": {"handlers": ["console"], "level": "INFO",},
+        "django.server": {
+            "handlers": ["django.server"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

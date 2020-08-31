@@ -93,36 +93,6 @@ $ sudo apt update
 $ sudo apt install postgresql postgresql-contrib
 ```
 
-By default, postgres only allows connections over localhost. To access it from within docker containers, it must also listen for connections on the Docker bridge. In swarm mode, Docker creates a bridge network called `docker_gwbridge`, usually on `172.18.0.0/16`. You can inspect the network with `docker network inspect docker_gwbridge` to confirm.
-
-Postgres' configuration file is at `/etc/postgresql/<version>/main/postgresql.conf`, where `<version>` is the postgres version you installed (12 is the latest at the time of writing). Look for the line containing `listen_address`, which by default will be commented out:
-
-```bash
-$ grep -n listen_address postgresql.conf 
-59:#listen_addresses = 'localhost'              # what IP address(es) to listen on;
-```
-
-Open up the file in your editor of choice, uncomment the line, and add `172.18.0.1` to the list:
-
-```
-listen_addresses = 'localhost,172.18.0.1'
-```
-
-This host also needs to be added to the client authentication configuration file in `/etc/postgresql/<version>/main/pg_hba.conf`. Add the following under `# IPv4 local connections`:
-
-```
-host    all             all             172.18.0.1/16           md5
-```
-
-The second column is the database and the third is the user, you may change them if desired.
-
-Restart postgres for the changes to take effect:
-
-```bash
-$ sudo service postgresql restart
-```
-
-
 Postgres, by default, requires you to be the `postgres` user/role in order to connect. Switch into the `postgres` user:
 
 ```bash
@@ -153,6 +123,35 @@ You can now `exit` out of the postgres user and return to whatever user account 
 $ exit
 ``` 
 
+By default, postgres only allows connections over localhost. To access it from within docker containers, it must also listen for connections on the Docker bridge. In swarm mode, Docker creates a bridge network called `docker_gwbridge`, usually on `172.18.0.0/16`, but this may change. You should inspect the network with `docker network inspect docker_gwbridge` to confirm.
+
+Postgres' configuration file is at `/etc/postgresql/<version>/main/postgresql.conf`, where `<version>` is the postgres version you installed (12 is the latest at the time of writing). Look for the line containing `listen_address`, which by default will be commented out:
+
+```bash
+$ grep -n listen_address postgresql.conf 
+59:#listen_addresses = 'localhost'              # what IP address(es) to listen on;
+```
+
+Open up the file in your editor of choice, uncomment the line, and add `172.18.0.1` (or the address of your `docker_gwbridge`) to the list:
+
+```
+listen_addresses = 'localhost,172.18.0.1'
+```
+
+This host also needs to be added to the client authentication configuration file in `/etc/postgresql/<version>/main/pg_hba.conf`. Add the following under `# IPv4 local connections` (again, changing the address to that of `docker_gwbridge` if necessary):
+
+```
+host    all             all             172.18.0.1/16           md5
+```
+
+The second column is the database and the third is the user, you may change them to `djangodb` and `djangouser` if you would like to limit the user's connection to just the newly created database.
+
+Restart postgres for the changes to take effect:
+
+```bash
+$ sudo service postgresql restart
+```
+
 To confirm that the database and user were created correctly, launch a psql shell:
 
 ```bash
@@ -168,7 +167,7 @@ $ sudo apt install nginx
 
 At this point, it is helpful, but not required, to have a domain. This example uses `django-swarm-example.grahamhoyes.com`, which you may substitute for your own domain. SSL is not covered in this tutorial, but should be used in production. If not using SSL, you may substitute the domain name below with the public IP address of your server. Whichever approach you go, make sure to included it in `ALLOWED_HOSTS` of the [Django settings file](/app/app/settings/__init__.py).
 
-Create a config file in `/etc/nginx/sites-available/`, for example `/etc/nginx/sites-available/django-swarm-example.conf`, with the following contents. If you aren't trying to deploy django under `/mysite`, you can replace it with just `/` in the config below.
+Create a config file in `/etc/nginx/sites-available/`, for example `/etc/nginx/sites-available/django-swarm-example.conf`, with the following contents. If you aren't trying to deploy django under `/mysite`, you can replace it with just `/` in the config below. Static files are placed in `/usr/src/<username>/<repository>/static/` by default, which you can customize in the [workflow](#deploy).
 
 ```
 upstream django_server {
@@ -179,7 +178,7 @@ server {
     listen 80 default_server;
     listen [::]:80 default_server;
     
-    server_name _;
+    server_name django-swarm-example.grahamhoyes.com;
     
     location /mysite {
         proxy_pass http://django_server;
@@ -247,4 +246,193 @@ Setup the following secrets:
 | `SSH_PRIVATE_KEY` | SSH private key, generated above. Must correspond to the `SSH_USER`. |
 
 ## The workflow
-The GitHub workflow that runs checks, builds, and deploys is in [.github/workflows/main.yml](.github/workflows/main.yml).
+The GitHub workflow that runs checks, builds, and deploys is in [.github/workflows/main.yml](.github/workflows/main.yml). Let's go over it.
+
+### Basic config
+The beginning of the file defines the name of the workflow. Afterwards, the workflow is set to be triggered on push to any branch in the repo. Later on, we will limit the build and deploy stages to only run on master.
+
+Top-level settings are specified in the `env` section. `IMAGE_ROOT` will be the prefix for the image tag when the services are built. `${{ github.repository }}` is `<username>/<repository>`. For this example, `IMAGE_ROOT` will become `docker.pkg.github.com/grahamhoyes/django-docker-swarm-experiment`.
+
+```yaml
+name: CI/CD
+
+on:
+  push:
+    branches: '**'
+
+env:
+  IMAGE_ROOT: docker.pkg.github.com/${{ github.repository }}
+  STACK_NAME: django-swarm-example
+```
+
+### Jobs
+#### Checks
+The file proceeds by defining a series of jobs. The first of these is for checks, which starts by checking out the repo (all jobs will begin with this), installing python and dependencies, linting with `black`, and finally running django tests. In order to run tests, the `SECRET_KEY` environment must be set. We do so, pulling it from the secrets defined above.
+
+```yaml
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Lint
+        run: black --check .
+      - name: Tests
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: python manage.py test --settings=app.settings.ci
+```
+
+#### Build
+Next, we build and push the docker container. By specifying `needs: [checks]`, we ensure that the checks job has completed before this job is run. This job will also only run on the master branch. The working directory is set to `app`, so step will execute within that directory by default.
+
+Each docker image will be tagged with the shortened git commit sha, to prevent ambiguities around using `:latest`. The short sha is just the first 7 characters of the long sha, and could also be obtained by `git rev-parse --short <commit sha>`. This is set as an environment variable, as it is used by [deployment/docker-compose.ci.yml](deployment/docker-compose.ci.yml) to tag the image, along with `$IMAGE_ROOT`. It is also set as an output of the job, so that it can be used in the deploy job.
+
+Once the image is built, it is pushed to GitHub packages. In order to do so, we must first log in to the docker client. `secrets.GITHUB_TOKEN` is automatically set by the GitHub actions runner to be a unique access token, with permissions only for the current repository. `github.actor` will be the user who triggers the pipeline. Once logged in, the image can be pushed and will appear in the [packages of the repo](https://github.com/grahamhoyes/django-docker-swarm-example/packages).
+
+```yaml
+  build:
+    runs-on: ubuntu-latest
+    needs: [checks]
+    if: github.ref == 'refs/heads/master'
+    outputs:
+      GITHUB_SHA_SHORT: ${{ steps.sha7.outputs.GITHUB_SHA_SHORT }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get short SHA
+        id: sha7
+        run: |
+          echo "::set-env name=GITHUB_SHA_SHORT::$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "::set-output name=GITHUB_SHA_SHORT::$(echo ${{ github.sha }} | cut -c1-7)"
+      - name: Build image
+        run: docker-compose -f deployment/docker-compose.ci.yml build
+      - name: Authenticate Docker with GitHub Packages
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+      - name: Push image
+        run: docker-compose -f deployment/docker-compose.ci.yml push
+```
+
+#### Deploy
+This is the most complex stage of the workflow. It requires that both the checks and build jobs have completed (listing checks is redundant, since build requires it already). The job will also only be run on master. The working directory is set to `deployment`, so every step (except the SCP step, more below) will execute there by default.
+
+```yaml
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [checks, build]
+    if: github.ref == 'refs/heads/master'
+    defaults:
+      run:
+        working-directory: deployment
+```
+
+We start by installing python and dependencies again (workspaces aren't preserved between jobs, so we can't reuse the state from the checks job). Then we run `python manage.py collectstatic`, to collect django's static files into a single directory. This also requires a secret key.
+
+```yaml
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        working-directory: app
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Collect static
+        working-directory: app
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        run: python manage.py collectstatic
+```
+
+Next, we set all of the necessary environment variables for the deployment in a `.env` file, which is used by [deployment/docker-compose.prod.yml](deployment/docker-compose.prod.yml). We then do some string substitution with `sed` on the latter file to build the full image tag from `$IMAGE_ROOT` and `$GITHUB_SHA_SHORT`, the later of which is taken from the output of the `build` stage (which we have access to because `build` is in this job's `needs` list). Alternatively, we could have left these as environment variables and set those environment variables on the host while deploying.
+
+```yaml
+      - name: Set environment variables in .env
+        run: |
+          echo 'DEBUG=0' >> .env
+          echo 'SECRET_KEY=${{ secrets.SECRET_KEY }}' >> .env
+          echo 'DB_NAME=${{ secrets.DB_NAME }}' >> .env
+          echo 'DB_USER=${{ secrets.DB_USER }}' >> .env
+          echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env
+          echo 'DB_HOST=${{ secrets.DB_HOST }}' >> .env
+          echo 'DB_PORT=${{ secrets.DB_PORT }}' >> .env
+      - name: Substitute variables in compose file
+        run: |
+          cp docker-compose.prod.yml docker-compose.prod.tmp.yml
+          cat docker-compose.prod.tmp.yml \
+            | sed "s,{{IMAGE_ROOT}},${{ env.IMAGE_ROOT }},g" \
+            | sed "s,{{GITHUB_SHA_SHORT}},${{ needs.build.outputs.GITHUB_SHA_SHORT }},g" \
+            > docker-compose.prod.yml
+```
+
+The deployment and static files are then transferred to the server over scp using [scp-action](https://github.com/appleboy/scp-action). This action doesn't obey the `working-directory` of the job, so we have to use absolute paths.
+
+Files on the server are sent to `/usr/src/<username>/<repository>/`, so make sure the user you are using for SCP/SSH has the necessary permissions. If you change this, make sure to change the nginx config above as well. `strip_component: 1` removes the first folder in the file path, which in our case strips `deployment/` out when sending the files to the server.
+
+```yaml
+      - name: Transfer deployment and static files to the Swarm manager
+        uses: appleboy/scp-action@v0.1.1
+        with:
+          host: ${{ secrets.SWARM_MANAGER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          overwrite: true
+          # scp-action doesn't obey working-directory, runs at repo root
+          source: "deployment/.env,deployment/docker-compose.prod.yml,app/static/"
+          target: "/usr/src/${{ github.repository }}"
+          strip_components: 1
+```
+
+Finally, the deployment is brought up over SSH.
+
+Once again, we must log in to docker to pull the image. `--with-registry-auth` is required in the `docker-stack-deploy` command to pass these credentials through to other nodes in the swarm, if there are any.
+
+We use [docker-stack-wait](https://github.com/sudo-bmitch/docker-stack-wait) to pause until the deployment is complete. Afterwards, we get the ID of a container on the node that we can run migrations in. This will fail if you have multiple nodes, and it so happens that none of the service replicas end up on the manager. In this case, you can either find the node and switch `DOCKER_HOST` there, or try using `docker run` or `docker-compose run`, but these require some extra configuration to postgres since the run outside of the `docker_gwbridge` network.
+
+After that, we remove the files with sensitive information (`docker logout` will delete it's saved credentials), and we're done!
+
+```yaml
+      - name: Bring up deployment
+        uses: appleboy/ssh-action@v0.1.3
+        with:
+          host: ${{ secrets.SWARM_MANAGER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            cd /usr/src/${{ github.repository }}
+            docker pull sudobmitch/docker-stack-wait
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+            docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
+
+            # Wait for deployment to complete
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              sudobmitch/docker-stack-wait ${{ env.STACK_NAME }}
+
+            # Run migrations
+            # TODO: This will fail if at least one replica isn't running on the node, will need to
+            # switch DOCKER_HOST over ssh
+            service_id=$(docker ps -f "name=${{ env.STACK_NAME }}_django" -q | head -n1)
+            docker exec $service_id python manage.py migrate
+
+            # Cleanup
+            rm .env
+            docker logout docker.pkg.github.com
+```

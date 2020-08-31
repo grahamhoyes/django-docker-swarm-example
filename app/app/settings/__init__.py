@@ -116,18 +116,18 @@ USE_TZ = True
 
 # Proxy things
 # FORCE_SCRIPT_NAME = None
-
-if not DEBUG:
-    # FORCE_SCRIPT_NAME = "/mysite"
-    USE_X_FORWARDED_HOST = True
+#
+# if not DEBUG:
+#     FORCE_SCRIPT_NAME = "/mysite"
+#     USE_X_FORWARDED_HOST = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = "/static/"
 
-if not DEBUG:
-    STATIC_URL = "/mysite" + STATIC_URL
+# if not DEBUG:
+#     STATIC_URL = FORCE_SCRIPT_NAME + STATIC_URL
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 

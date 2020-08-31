@@ -48,6 +48,29 @@ Create a server using your cloud provider of choice. For this example, I am usin
 
 SSH into the machine, and follow the steps below. Note that we assume you will be running the deployments using the user you ssh in with. If you wish to use a dedicated user for automated deploys, ssh in with that user below. The user must have docker privileges.
 
+### Install Docker
+Install Docker Engine by following the steps in the [Docker documentation](https://docs.docker.com/engine/install/ubuntu/).
+
+#### Credentials Setup
+In order to pull images from GitHub packages, we will need to run `docker login` as part of the deployment process. We will be using Docker's default credentials configuration for simplicity, which is to store credentials in plain text in `~/.docker/config.json`. 
+
+In order for credentials to work, we still need to install gnupg2 and [pass](https://www.passwordstore.org/):
+
+```bash
+$ sudo apt install gnupg2 pass 
+```
+
+If you would like to continue setting up a proper credentials store, you can read about [credentials stores](https://docs.docker.com/engine/reference/commandline/login/#credentials-store). If you have confidence in the security of the server you are deploying to such that nobody can access the plaintext credentials, you may skip this step, but it is recommended to have a secure credentials store.
+
+### Create the Swarm
+In this example, we will be working on a single-node swarm. For a full example of how to create a swarm and attach worker nodes, follow the [Docker Swarm tutorial](https://docs.docker.com/engine/swarm/swarm-tutorial/create-swarm/).
+
+```bash
+$ docker swarm init --advertise-addr <ip_addess>
+```
+
+`<ip_address>` is required, even if we don't plan on attaching other nodes at this stage. It should be set to an IP on your private or internal network, not the public IP your server is accessible on.
+
 ### Install Postgres
 Check the [postgres download page](https://www.postgresql.org/download/linux/ubuntu/) for the latest installation instructions. Included below are the instructions for postgres 12, the latest version as of the time of writing.
 
@@ -186,29 +209,6 @@ Reload nginx for the changes to take effect:
 ```bash
 $ sudo systemctl reload nginx
 ```
-
-### Install Docker
-Install Docker Engine by following the steps in the [Docker documentation](https://docs.docker.com/engine/install/ubuntu/).
-
-#### Credentials Setup
-In order to pull images from GitHub packages, we will need to run `docker login` as part of the deployment process. We will be using Docker's default credentials configuration for simplicity, which is to store credentials in plain text in `~/.docker/config.json`. 
-
-In order for credentials to work, we still need to install gnupg2 and [pass](https://www.passwordstore.org/):
-
-```bash
-$ sudo apt install gnupg2 pass 
-```
-
-If you would like to continue setting up a proper credentials store, you can read about [credentials stores](https://docs.docker.com/engine/reference/commandline/login/#credentials-store). If you have confidence in the security of the server you are deploying to such that nobody can access the plaintext credentials, you may skip this step, but it is recommended to have a secure credentials store.
-
-### Create the Swarm
-In this example, we will be working on a single-node swarm. For a full example of how to create a swarm and attach worker nodes, follow the [Docker Swarm tutorial](https://docs.docker.com/engine/swarm/swarm-tutorial/create-swarm/).
-
-```bash
-$ docker swarm init --advertise-addr <ip_addess>
-```
-
-`<ip_address>` is required, even if we don't plan on attaching other nodes at this stage. It should be set to an IP on your private or internal network, not the public IP your server is accessible on.
 
 ### SSH Keys
 Since we do not expose the Docker API, deploying happens by transferring compose files to the server over SCP, and running the deploy command over SSH. We'll need on SSH key to do that, so on the server run:

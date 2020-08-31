@@ -1,7 +1,7 @@
 # Django Docker Swarm Example
 An example project for deploying Django on Docker Swarm.
 
-This is primarily a playground and documentation for [IEEE UofT's](https://ieee.utoronto.ca/) deployment needs to server our [hackathon template](https://github.com/ieeeuoft/hackathon-template). As such, the requirements are:
+This is primarily a playground and documentation for [IEEE UofT's](https://ieee.utoronto.ca/) deployment needs to serve our [hackathon template](https://github.com/ieeeuoft/hackathon-template). As such, the requirements are:
 - Runs on a single server, but the option to add more nodes in the future is preferred
 - Postgres is installed natively on the server
 - Nginx is installed natively on the server, handling SSL and static file serving. We were using Apache, but after trying to get the reverse proxy for this tutorial to work properly we gave up and switched to Nginx. Would recommend.
@@ -9,7 +9,7 @@ This is primarily a playground and documentation for [IEEE UofT's](https://ieee.
 - Multiple independent instances must be possible (for multiple events)
 - Applications must be able to run under a sub-folder of the website, i.e. ieee.utoronto.ca/event1, ieee.utoronto.ca/event2
 
-This project walks through installing a postgres server, docker engine, and initializing Docker Swarm on a single machine (i.e., we will be creating a Swarm cluster with a single node). 
+This project walks through installing a postgres server, nginx, docker engine, and initializing Docker Swarm on a single machine (i.e., we will be creating a Swarm cluster with a single node). 
 
 This project does not:
 - Use [Docker Machine](https://docs.docker.com/machine/), because my use case is running on an existing server.
@@ -21,6 +21,7 @@ The following resources were a great help in developing this example:
 - https://docs.github.com/en/packages/using-github-packages-with-your-projects-ecosystem/configuring-docker-for-use-with-github-packages
 - https://github.com/appleboy/scp-action
 - https://github.com/appleboy/ssh-action
+- https://stackoverflow.com/questions/47941075/host-django-on-subfolder/47945170#47945170
 
 ## Running locally
 Configurations for running locally are within the [development](development) folder.
@@ -69,7 +70,7 @@ In this example, we will be working on a single-node swarm. For a full example o
 $ docker swarm init --advertise-addr <ip_addess>
 ```
 
-`<ip_address>` is required, even if we don't plan on attaching other nodes at this stage. It should be set to an IP on your private or internal network, not the public IP your server is accessible on.
+`<ip_address>` is required, even if we don't plan on attaching other nodes at this stage. It should be set to an IP on your private or internal network, not the public IP your server is accessible on. If your server only has a public IP, make sure to block whatever port the swarm advertises on (will be printed after initialized) on your server's firewall.
 
 ### Install Postgres
 Check the [postgres download page](https://www.postgresql.org/download/linux/ubuntu/) for the latest installation instructions. Included below are the instructions for postgres 12, the latest version as of the time of writing.

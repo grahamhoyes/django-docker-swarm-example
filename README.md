@@ -4,10 +4,10 @@ An example project for deploying Django on Docker Swarm.
 This is primarily a playground and documentation for [IEEE UofT's](https://ieee.utoronto.ca/) deployment needs to server our [hackathon template](https://github.com/ieeeuoft/hackathon-template). As such, the requirements are:
 - Runs on a single server, but the option to add more nodes in the future is preferred
 - Postgres is installed natively on the server
-- Apache is installed natively on the server, handling SSL and static file serving
-- The application should be deployed as a docker container that Apache can reverse proxy to
+- Nginx is installed natively on the server, handling SSL and static file serving. We were using Apache, but after trying to get the reverse proxy for this tutorial to work properly we gave up and switched to Nginx. Would recommend.
+- The application should be deployed as a docker container that Apache/Nginx can reverse proxy to
 - Multiple independent instances must be possible (for multiple events)
-- Applications must be able to run under a sub-folder of the website, ie ieee.utoronto.ca/event1, ieee.utoronto.ca/event2
+- Applications must be able to run under a sub-folder of the website, i.e. ieee.utoronto.ca/event1, ieee.utoronto.ca/event2
 
 This project walks through installing a postgres server, docker engine, and initializing Docker Swarm on a single machine (i.e., we will be creating a Swarm cluster with a single node). 
 
@@ -136,53 +136,55 @@ To confirm that the database and user were created correctly, launch a psql shel
 $ psql -d djangodb -h 127.0.0.1 -U djangouser
 ```
 
-### Install Apache
-Apache will run on the host, and will handle static file serving and as a reverse proxy to the swarm cluster. Install apache2:
+### Install Nginx
+Nginx will run on the host, and will handle static file serving and as a reverse proxy to the swarm cluster. Install nginx:
 
 ```bash
-$ sudo apt install apache2
-```
-
-Enable the proxy module, and restart apache:
-
-```bash
-$ sudo a2enmod proxy_http
-$ sudo a2enmod headers
-$ sudo systemctl restart apache2
+$ sudo apt install nginx
 ```
 
 At this point, it is helpful, but not required, to have a domain. This example uses `django-swarm-example.grahamhoyes.com`, which you may substitute for your own domain. SSL is not covered in this tutorial, but should be used in production. If not using SSL, you may substitute the domain name below with the public IP address of your server. Whichever approach you go, make sure to included it in `ALLOWED_HOSTS` of the [Django settings file](/app/app/settings/__init__.py).
 
-Create a config file in `/etc/apache2/sites-available/`, for example `/etc/apache2/sites-available/django-swarm-example.conf`:
+Create a config file in `/etc/nginx/sites-available/`, for example `/etc/nginx/sites-available/django-swarm-example.conf`, with the following contents. If you aren't trying to deploy django under `/mysite`, you can replace it with just `/` in the config below.
 
 ```
-<VirtualHost django-swarm-example.grahamhoyes.com:80>
-    ProxyPass /static/ !
-    ProxyPass /media/ !
-    ProxyPass / http://localhost:8000/
-    ProxyPassReverse / http://django-swarm-example.grahamhoyes.com/
+upstream django_server {
+    server localhost:8000;
+}
 
-    # The folder below is decided by the github workflow, and can be changed
-    Alias /static /usr/src/grahamhoyes/django-docker-swarm-example/static
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    
+    server_name _;
+    
+    location /mysite {
+        proxy_pass http://django_server;
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $host;
+        proxy_set_header X-Script-Name /mysite;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
-    <Directory /usr/src/grahamhoyes/django-docker-swarm-example/static>
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
+    location /mysite/static {
+        alias /usr/src/grahamhoyes/django-docker-swarm-example/static/;
+    }
+}
 ```
 
-Disable the default apache site, and enable the one you just created:
+Disable the default nginx site, and enable the one you just created by creating a symlink:
 
 ```bash
-$ sudo a2dissite 000-default.conf
-$ sudo a2ensite django-swarm-example.conf
+$ sudo rm /etc/nginx/sites-enabled/default
+$ sudo ln -s /etc/nginx/sites-available/django-swarm-example.conf /etc/nginx/sites-enabled/django-swarm-example.conf
 ```
 
-Reload apache for the changes to take effect:
+Reload nginx for the changes to take effect:
 
 ```bash
-$ sudo systemctl reload apache2
+$ sudo systemctl reload nginx
 ```
 
 ### Install Docker

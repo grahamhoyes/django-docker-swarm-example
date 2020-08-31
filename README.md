@@ -240,7 +240,7 @@ Setup the following secrets:
 | `DB_NAME` | Database name. `djangodb` in this example. |
 | `DB_USER` | Database user. `djangouser` in this example. |
 | `DB_PASSWORD` | Database password, set during user creation. |
-| `DB_HOST` | Database host. If postgres is running natively on the same server as the single Swarm node, this should be `172.18.0.1`. |
+| `DB_HOST` | Database host. If postgres is running natively on the same server as the single Swarm node, this should be `172.18.0.1`, or the address of `docker_gwbridge`. |
 | `DB_PORT` | Database port. For postgres, the default is `5432`. |
 | `SWARM_MANAGER_IP` | Public IP of the Swarm manager node that we can ssh to. Note that this is not the same as the IP address provided to `--advertise-addr` when initializing the swarm. |
 | `SSH_USER` | User to SSH over and deploy as. |

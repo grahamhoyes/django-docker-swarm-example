@@ -8,8 +8,6 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Install dependencies
-RUN apt-get update && apt-get install -y postgresql-client
-
 RUN pip install --upgrade pip
 COPY app/requirements.txt /usr/src/app/requirements.txt
 RUN pip install -r /usr/src/app/requirements.txt

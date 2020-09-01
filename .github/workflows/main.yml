@@ -114,16 +114,15 @@ jobs:
           script_stop: true
           script: |
             cd /usr/src/${{ github.repository }}
-            docker pull sudobmitch/docker-stack-wait
+            curl -o https://raw.githubusercontent.com/sudo-bmitch/docker-stack-wait/main/docker-stack-wait.sh \
+              -o docker-stack-wait.sh
+            chmod +x docker-stack-wait.sh
+
             echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
             docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
 
             # Wait for deployment to complete
-            docker run --rm \
-              -v /var/run/docker.sock:/var/run/docker.sock \
-              sudobmitch/docker-stack-wait ${{ env.STACK_NAME }}
-
-            echo "Can I echo things"
+            ./docker-stack-wait.sh ${{ env.STACK_NAME }}
 
             # Run migrations
             # TODO: This will fail if at least one replica isn't running on the node, will need to
@@ -133,4 +132,5 @@ jobs:
 
             # Cleanup
             rm .env
+            rm docker-stack-wait.sh
             docker logout docker.pkg.github.com

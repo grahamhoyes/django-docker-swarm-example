@@ -102,7 +102,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           overwrite: true
           # scp-action doesn't obey working-directory, runs at repo root
-          source: "deployment/.env,deployment/docker-compose.prod.yml,app/static/"
+          source: "deployment/.env,deployment/docker-compose.prod.yml,deployment/deploy.sh,app/static/"
           target: "/usr/src/${{ github.repository }}"
           strip_components: 1
       - name: Bring up deployment
@@ -114,23 +114,5 @@ jobs:
           script_stop: true
           script: |
             cd /usr/src/${{ github.repository }}
-            curl -s https://raw.githubusercontent.com/sudo-bmitch/docker-stack-wait/main/docker-stack-wait.sh \
-              -o docker-stack-wait.sh
-            chmod +x docker-stack-wait.sh
-
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
-            docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
-
-            # Wait for deployment to complete
-            ./docker-stack-wait.sh ${{ env.STACK_NAME }}
-
-            # Run migrations
-            # TODO: This will fail if at least one replica isn't running on the node, will need to
-            # switch DOCKER_HOST over ssh
-            service_id=$(docker ps -f "name=${{ env.STACK_NAME }}_django" -q | head -n1)
-            docker exec $service_id python manage.py migrate
-
-            # Cleanup
-            rm .env
-            rm docker-stack-wait.sh
-            docker logout docker.pkg.github.com
+            chmod +x deploy.sh
+            ./deploy.sh ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ env.STACK_NAME }}

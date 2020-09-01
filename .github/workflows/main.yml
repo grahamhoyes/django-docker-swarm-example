@@ -123,6 +123,8 @@ jobs:
               -v /var/run/docker.sock:/var/run/docker.sock \
               sudobmitch/docker-stack-wait ${{ env.STACK_NAME }}
 
+            echo "Can I echo things"
+
             # Run migrations
             # TODO: This will fail if at least one replica isn't running on the node, will need to
             # switch DOCKER_HOST over ssh

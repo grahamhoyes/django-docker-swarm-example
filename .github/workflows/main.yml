@@ -114,7 +114,7 @@ jobs:
           script_stop: true
           script: |
             cd /usr/src/${{ github.repository }}
-            curl -o https://raw.githubusercontent.com/sudo-bmitch/docker-stack-wait/main/docker-stack-wait.sh \
+            curl -s https://raw.githubusercontent.com/sudo-bmitch/docker-stack-wait/main/docker-stack-wait.sh \
               -o docker-stack-wait.sh
             chmod +x docker-stack-wait.sh
 

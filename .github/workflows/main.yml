@@ -132,8 +132,12 @@ jobs:
           echo "Running migrations..."
           # Get the host of a node that's running the service
           nodeId=$(docker service ps ${{ env.STACK_NAME }}_django -f "desired-state=running" --format={{.Node}})
+          echo "Service found running on $nodeId"
           nodeHost=$(docker node inspect $nodeId --format={{.Status.Addr}})
+          echo "Connecting to $nodeHost"
 
           export DOCKER_HOST=ssh://${{ secrets.REMOTE_USER }}@$nodeHost
-          service_id=$(docker ps -f "name=${stack_name}_django" -q | head -n1)
-          docker exec $service_id python manage.py migrate
+          echo $DOCKER_HOST
+          serviceId=$(docker ps -f "name=${stack_name}_django" -q | head -n1)
+          echo "Running in $serviceId"
+          docker exec $serviceId python manage.py migrate

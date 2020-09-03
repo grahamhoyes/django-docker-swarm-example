@@ -61,6 +61,8 @@ jobs:
     defaults:
       run:
         working-directory: deployment
+    env:
+      GITHUB_SHA_SHORT: ${{ needs.build.outputs.GITHUB_SHA_SHORT }}
 
     steps:
       - uses: actions/checkout@v2
@@ -87,13 +89,6 @@ jobs:
           echo 'DB_PASSWORD=${{ secrets.DB_PASSWORD }}' >> .env
           echo 'DB_HOST=${{ secrets.DB_HOST }}' >> .env
           echo 'DB_PORT=${{ secrets.DB_PORT }}' >> .env
-      - name: Substitute variables in compose file
-        run: |
-          cp docker-compose.prod.yml docker-compose.prod.tmp.yml
-          cat docker-compose.prod.tmp.yml \
-            | sed "s,{{IMAGE_ROOT}},${{ env.IMAGE_ROOT }},g" \
-            | sed "s,{{GITHUB_SHA_SHORT}},${{ needs.build.outputs.GITHUB_SHA_SHORT }},g" \
-            > docker-compose.prod.yml
       - name: Transfer static files to the Swarm manager
         uses: appleboy/scp-action@v0.1.1
         with:
@@ -130,14 +125,8 @@ jobs:
           ./docker-stack-wait.sh -t 300 ${{ env.STACK_NAME }}
 
           echo "Running migrations..."
-          # Get the host of a node that's running the service
-          nodeId=$(docker service ps ${{ env.STACK_NAME }}_django -f "desired-state=running" --format={{.Node}})
-          echo "Service found running on $nodeId"
-          nodeHost=$(docker node inspect $nodeId --format={{.Status.Addr}})
-          echo "Connecting to $nodeHost"
-
-          export DOCKER_HOST=ssh://${{ secrets.REMOTE_USER }}@$nodeHost
-          echo $DOCKER_HOST
+          # TODO: This will fail if at least one replica isn't running on the node, will need to
+          # switch DOCKER_HOST over ssh. But to do that we need to get an SSH-accessible IP, which we
+          # can't get from the node's internal IP
           serviceId=$(docker ps -f "name=${stack_name}_django" -q | head -n1)
-          echo "Running in $serviceId"
           docker exec $serviceId python manage.py migrate

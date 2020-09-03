@@ -94,7 +94,7 @@ jobs:
             | sed "s,{{IMAGE_ROOT}},${{ env.IMAGE_ROOT }},g" \
             | sed "s,{{GITHUB_SHA_SHORT}},${{ needs.build.outputs.GITHUB_SHA_SHORT }},g" \
             > docker-compose.prod.yml
-      - name: Transfer deployment and static files to the Swarm manager
+      - name: Transfer static files to the Swarm manager
         uses: appleboy/scp-action@v0.1.1
         with:
           host: ${{ secrets.SWARM_MANAGER_IP }}
@@ -102,17 +102,38 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           overwrite: true
           # scp-action doesn't obey working-directory, runs at repo root
-          source: "deployment/.env,deployment/docker-compose.prod.yml,deployment/deploy.sh,app/static/"
+          source: "app/static/"
           target: "/usr/src/${{ github.repository }}"
           strip_components: 1
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -t rsa ${{ secrets.SWARM_MANAGER_IP }} >> ~/.ssh/known_hosts
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" >> ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
       - name: Bring up deployment
-        uses: appleboy/ssh-action@v0.1.3
-        with:
-          host: ${{ secrets.SWARM_MANAGER_IP }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: true
-          script: |
-            cd /usr/src/${{ github.repository }}
-            chmod +x deploy.sh
-            ./deploy.sh ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ env.STACK_NAME }}
+        env:
+          DOCKER_HOST: ssh://${{ secrets.SSH_USER }}@${{ secrets.SWARM_MANAGER_IP }}
+        run: |
+          curl -s https://raw.githubusercontent.com/sudo-bmitch/docker-stack-wait/main/docker-stack-wait.sh \
+            -o docker-stack-wait.sh
+          chmod +x docker-stack-wait.sh
+
+          echo "Logging in to GitHub packages..."
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+          echo "Bringing up deployment..."
+          docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
+
+          echo "Waiting for deployment..."
+          sleep 30
+          ./docker-stack-wait.sh -t 300 ${{ env.STACK_NAME }}
+
+          echo "Running migrations..."
+          # Get the host of a node that's running the service
+          nodeId=$(docker service ps ${{ env.STACK_NAME }}_django -f "desired-state=running" --format={{.Node}})
+          nodeHost=$(docker node inspect $nodeId --format={{.Status.Addr}})
+
+          export DOCKER_HOST=ssh://${{ secrets.REMOTE_USER }}@$nodeHost
+          service_id=$(docker ps -f "name=${stack_name}_django" -q | head -n1)
+          docker exec $service_id python manage.py migrate

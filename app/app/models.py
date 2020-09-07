@@ -9,5 +9,6 @@ class PhotoRecord(models.Model):
     """
     Store an image to test media uploads
     """
+
     image = models.ImageField(upload_to="uploads/")
     modified_at = models.DateTimeField(auto_now=True)

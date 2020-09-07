@@ -24,6 +24,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 
 DEBUG = int(os.environ.get("DEBUG", 1))
 
+IN_TESTING = False
+
 if DEBUG:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 else:
@@ -124,7 +126,14 @@ STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 MEDIA_URL = "media/"
-MEDIA_ROOT = "/var/www/media/"
+
+if DEBUG:
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+else:
+    MEDIA_ROOT = "/var/www/media/"
+
+if not IN_TESTING and not os.path.isdir(MEDIA_ROOT):
+    os.makedirs(MEDIA_ROOT)
 
 LOGGING = {
     "version": 1,

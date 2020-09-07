@@ -123,6 +123,9 @@ STATIC_URL = "static/"
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
+MEDIA_URL = "media/"
+MEDIA_ROOT = "/var/www/django-docker-swarm-example/media/"
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

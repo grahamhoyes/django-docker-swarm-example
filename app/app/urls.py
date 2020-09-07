@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf import settings
 from django.urls import path
 from app.views import home, CoolDogView
 
@@ -22,3 +23,13 @@ urlpatterns = [
     path("", home, name="home"),
     path("a/cool/dog/", CoolDogView.as_view()),
 ]
+
+if settings.DEBUG:
+    from django.urls import re_path
+    from django.views.static import serve
+
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {
+            'document_root': settings.MEDIA_ROOT,
+        }),
+    ]

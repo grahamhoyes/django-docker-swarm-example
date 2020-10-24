@@ -10,4 +10,4 @@ class HomePageTestCase(TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(AccessRecord.objects.count(), 1)
-        self.assertEqual(json.loads(response.content.decode()), {"hits": 1})
+        self.assertEqual(json.loads(response.content.decode()), {"hits": 1, "cache_hits": 1})

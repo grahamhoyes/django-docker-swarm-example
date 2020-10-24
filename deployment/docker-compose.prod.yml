@@ -9,6 +9,19 @@ services:
     env_file: .env
     volumes:
       - /var/www/${GITHUB_REPOSITORY}/media/:/var/www/media/
+    depends_on:
+      - redis
+    deploy:
+      replicas: 1
+      update_config:
+        failure_action: rollback
+        order: start-first
+      restart_policy:
+        condition: on-failure
+  redis:
+    image: redis:6-alpine
+    ports:
+      - 6380:6379
     deploy:
       replicas: 1
       update_config:

@@ -10,6 +10,10 @@ services:
           - POSTGRES_HOST_AUTH_METHOD=trust
       volumes:
           - ./.postgres-data:/var/lib/postgresql/data
+  redis:
+    image: redis:6-alpine
+    ports:
+      - 6379:6379
   django:
     build:
       context: ..
@@ -27,5 +31,7 @@ services:
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-}
       - DB_PORT=${DB_PORT:-5432}
+      - REDIS_URI=${REDIS_URI:-172.17.0.1:6379/1}
     depends_on:
       - postgres
+      - redis

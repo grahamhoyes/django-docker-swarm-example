@@ -18,10 +18,12 @@ services:
         order: start-first
       restart_policy:
         condition: on-failure
+    networks:
+      - swarm-example
   redis:
     image: redis:6-alpine
     ports:
-      - 6380:6379
+      - 6379:6379
     deploy:
       replicas: 1
       update_config:
@@ -29,3 +31,9 @@ services:
         order: start-first
       restart_policy:
         condition: on-failure
+    networks:
+      - swarm-example
+
+networks:
+  swarm-example:
+    driver: overlay

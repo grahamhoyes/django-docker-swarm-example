@@ -11,5 +11,5 @@ class HomePageTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(AccessRecord.objects.count(), 1)
         self.assertEqual(
-            json.loads(response.content.decode()), {"hits": 1, "cache_hits": 1}
+            json.loads(response.content.decode()), {"hits": 1, "cache-hits": 1}
         )

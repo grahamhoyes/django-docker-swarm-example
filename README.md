@@ -237,6 +237,7 @@ Setup the following secrets:
 | **Secret name** | **Description** |
 | --- | --- |
 | `SECRET_KEY` | The Django [secret key](https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-SECRET_KEY) |
+| `CI_SECRET_KEY` | The Django secret key used during a CI environment, NOT for deployment. This is to keep your primary secret key from being passed to actions running from forks, if enabled. |
 | `DB_NAME` | Database name. `djangodb` in this example. |
 | `DB_USER` | Database user. `djangouser` in this example. |
 | `DB_PASSWORD` | Database password, set during user creation. |

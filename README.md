@@ -246,7 +246,7 @@ Setup the following secrets:
 | `SWARM_MANAGER_IP` | Public IP of the Swarm manager node that we can ssh to. Note that this is not the same as the IP address provided to `--advertise-addr` when initializing the swarm. |
 | `SSH_USER` | User to SSH over and deploy as. |
 | `SSH_PRIVATE_KEY` | SSH private key, generated above. Must correspond to the `SSH_USER`. |
-| `REDIS_URI` | Redis host URI, eg `redis:6380/test` to resolve the `redis` service via DNS. |
+| `REDIS_URI` | Redis host URI, eg `redis:6379/test` to resolve the `redis` service via DNS. |
 
 ## The workflow
 The GitHub workflow that runs checks, builds, and deploys is in [.github/workflows/main.yml](.github/workflows/main.yml). Let's go over it.

@@ -138,5 +138,5 @@ jobs:
           # TODO: This will fail if at least one replica isn't running on the node, will need to
           # switch DOCKER_HOST over ssh. But to do that we need to get an SSH-accessible IP, which we
           # can't get from the node's internal IP
-          serviceId=$(docker ps -f "name=${stack_name}_django-app" -q | head -n1)
+          serviceId=$(docker ps -f "name=${stack_name}_django" -q | head -n1)
           docker exec $serviceId python manage.py migrate

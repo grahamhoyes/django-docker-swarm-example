@@ -2,10 +2,12 @@ name: CI/CD
 
 on:
   push:
-    branches: '**'
+    branches: ['**']
 
 env:
-  IMAGE_ROOT: docker.pkg.github.com/${{ github.repository }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_ROOT: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
   STACK_NAME: django-swarm-example
 
 jobs:
@@ -44,13 +46,16 @@ jobs:
       - name: Get short SHA
         id: sha7
         run: |
-          echo "GITHUB_SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
-          echo "::set-output name=GITHUB_SHA_SHORT::$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "GITHUB_SHA_SHORT=$(echo ${{ GITHUB_SHA }} | cut -c1-7)" >> $GITHUB_ENV
+          echo "::set-output name=GITHUB_SHA_SHORT::$(echo ${{ GITHUB_SHA }} | cut -c1-7)"
       - name: Build image
         run: docker-compose -f deployment/docker-compose.ci.yml build
-      - name: Authenticate Docker with GitHub Packages
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+      - name: Docker Login
+        uses: docker/login-action@v1.10.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ giithub.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push image
         run: docker-compose -f deployment/docker-compose.ci.yml push
 
@@ -119,7 +124,7 @@ jobs:
           chmod +x docker-stack-wait.sh
 
           echo "Logging in to GitHub packages..."
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
           echo "Bringing up deployment..."
           docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}

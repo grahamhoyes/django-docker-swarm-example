@@ -2,7 +2,8 @@ name: CI/CD
 
 on:
   push:
-    branches: ['**']
+    branches:
+      - '**'
 
 env:
   REGISTRY: ghcr.io

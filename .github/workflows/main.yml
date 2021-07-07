@@ -54,7 +54,7 @@ jobs:
         uses: docker/login-action@v1.10.0
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ giithub.actor }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push image
         run: docker-compose -f deployment/docker-compose.ci.yml push

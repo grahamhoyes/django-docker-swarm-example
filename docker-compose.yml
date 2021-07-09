@@ -9,18 +9,18 @@ services:
           - POSTGRES_DB=${DB_NAME:-djangodb}
           - POSTGRES_HOST_AUTH_METHOD=trust
       volumes:
-          - ./.postgres-data:/var/lib/postgresql/data
+          - django-swarm-example_postgres-data:/var/lib/postgresql/data
   redis:
     image: redis:6-alpine
     ports:
       - 6379:6379
   django:
     build:
-      context: ..
+      context: .
       dockerfile: ./development/Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ../app:/usr/src/app/
+      - ./app:/usr/src/app/
     ports:
       - 8000:8000
     environment:
@@ -31,7 +31,10 @@ services:
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-}
       - DB_PORT=${DB_PORT:-5432}
-      - REDIS_URI=${REDIS_URI:-172.17.0.1:6379/1}
+      - REDIS_URI=${REDIS_URI:-redis:6379/1}
     depends_on:
       - postgres
       - redis
+
+volumes:
+  django-swarm-example_postgres-data:

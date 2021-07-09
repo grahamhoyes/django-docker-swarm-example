@@ -21,6 +21,7 @@ The Django Project
 The Django project used in this tutorial is a simple application that counts the number of times the landing page has been visited. The project code is entirely contained within the `app/app <https://github.com/grahamhoyes/django-docker-swarm-example/tree/master/app/app>`_ directory. This is somewhat non-standard for Django: our project name is ``app``, but we have included our views, models, and migrations under the project directory as well, rather than creating a separate Django application (which for lack of a batter name, would have been called... app).
 
 The relevant portions of the project directory structure are::
+
    .
    ├── app
    │   ├── admin.py
@@ -114,11 +115,35 @@ The typical Django ``settings.py`` file is broken out into a settings module, wi
 
 Running Locally
 ---------------
-Configurations for running locally are within the `development <https://github.com/grahamhoyes/django-docker-swarm-example/tree/master/development>`_ folder. For this tutorial, we assume a familiarity with running Django locally normally, and instead explain how to run it through docker.
+Configurations for running locally are within the `development <https://github.com/grahamhoyes/django-docker-swarm-example/tree/master/development>`_ folder, with the exception of ``docker-compose.yml``, which is located in the repository root. This is largely for convenience, and so that containers derive their names from the name of the folder the repository was cloned in to.
 
-To build the container, from within the repository root:
+``docker-compose.yml`` defines 3 services:
 
-.. code-block: python
+``postgres``
+   Uses the ``postgres:12.2`` image (newer versions should also work). Postgres is exposed on port 5432, and by default will use the database name ``djangodb`` unless the ``DB_NAME`` environment variable is set.
 
-   import foo
+   Data is persisted using the ``django-swarm-example_postgres-data`` volume. I recommend giving your volumes a project-specific name, so that similar configs between projects will still have independent database data folders.
 
+``redis``
+   Uses the ``redis:6-alpine`` image, exposed on port 6379.
+
+``django``
+   The container which runs the Django development server on port 8000. By using a volume mount for the ``app`` directory, hot-reloading is enabled.
+
+   Environment variables for database and redis credentials are passed through to the container, with suitable defaults. The only environment variable that does not have a default is ``SECRET_KEY``, which you must first set yourself.
+
+First, set the secret key environment variable::
+
+   $ export SECRET_KEY=123456
+
+To build the container, from within the repository root::
+
+   $ docker-compose build
+
+To run the project::
+
+   $ docker-compose up
+
+This will start the Postgres, Redis, and Django containers, the latter of which will wait for Postgres to be available (via the `entrypoint.sh <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/development/entrypoint.sh>`_). The django service will run migrations as soon as the postgres connection is established.
+
+Once all containers are up, you can access the server at http://localhost:8000/. The first time you visit, you should see ``{"hits": 1, "cache-hits": 1}``. The counters will increase with every subsequent visit, with the cache hits resetting after about an hour of inactivity.

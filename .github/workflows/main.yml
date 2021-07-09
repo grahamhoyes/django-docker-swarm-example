@@ -131,12 +131,7 @@ jobs:
           docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
 
           echo "Waiting for deployment..."
-          sleep 30
           ./docker-stack-wait.sh -t 300 ${{ env.STACK_NAME }}
 
           echo "Running migrations..."
-          # TODO: This will fail if at least one replica isn't running on the node, will need to
-          # switch DOCKER_HOST over ssh. But to do that we need to get an SSH-accessible IP, which we
-          # can't get from the node's internal IP
-          serviceId=$(docker ps -f "name=${stack_name}_django" -q | head -n1)
-          docker exec $serviceId python manage.py migrate
+          docker-compose -f docker-compose.prod.yml run --rm --no-deps django python manage.py migrate

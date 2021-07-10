@@ -2,24 +2,20 @@
 
 echo "Waiting for the database..."
 
-timeout=60
-ready=false
+TIMEOUT=60
+ATTEMPT=0
+command="pg_isready -d $DB_NAME -h $DB_HOST -p $DB_PORT -U $DB_USER"
 
-for i in {1..$timeout} do
-  if pg_isready -d $DB_NAME -h $DB_HOST -p $DB_PORT -U $DB_USER
-  then
-    ready=true
-    break
-  else
-    sleep 1
-  fi
+until [ "$ATTEMPT" -eq "$TIMEOUT" ] || eval $command; do
+  (( ATTEMPT++ ))
+  sleep 1
 done
 
-if [ "$ready" = true]
+if [ "$ATTEMPT" -lt "$TIMEOUT" ]
 then
   echo "Database connection made"
   exec "$@"
 else
   echo "Failed to connect to database"
-  return 1
+  exit 1
 fi

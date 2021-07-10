@@ -29,7 +29,12 @@ IN_TESTING = False
 if DEBUG:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 else:
-    ALLOWED_HOSTS = ["django-swarm-example.grahamhoyes.com"]
+    # localhost is included to allow for container healthchecks
+    # to be made. This is potentially dangerous if your reverse
+    # proxy is not properly configured. In nginx, ensure the
+    # ``server_name`` and ``proxy_set_header Host $host`` directives
+    # are set.
+    ALLOWED_HOSTS = ["localhost", "django-swarm-example.grahamhoyes.com"]
 
 
 # Application definition

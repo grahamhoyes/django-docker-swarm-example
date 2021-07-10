@@ -11,6 +11,12 @@ services:
       - /var/www/${GITHUB_REPOSITORY}/media/:/var/www/media/
     depends_on:
       - redis
+    healthcheck:
+      test: curl --fail -s http://localhost:8000 || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 10s
     deploy:
       replicas: 1
       update_config:

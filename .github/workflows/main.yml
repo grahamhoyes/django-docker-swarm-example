@@ -128,11 +128,15 @@ jobs:
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
           echo "Bringing up deployment..."
-          docker stack deploy --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
+          docker stack deploy --prune --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
 
           echo "Waiting for deployment..."
           sleep 30
           ./docker-stack-wait.sh -t 300 ${{ env.STACK_NAME }}
 
           echo "Running migrations..."
-          docker-compose -f docker-compose.prod.yml run --rm --no-deps django python manage.py migrate
+          # TODO: It would be better to use docker-compose against the django service,
+          # but there is currently a bug in docker-compose preventing running services
+          # over an SSH host.
+          IMAGE=${REGISTRY}/${IMAGE_NAME}/django-app:${GITHUB_SHA_SHORT}
+          docker run --rm ${IMAGE} python manage.py migrate

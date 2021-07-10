@@ -139,4 +139,4 @@ jobs:
           # but there is currently a bug in docker-compose preventing running services
           # over an SSH host.
           IMAGE=${REGISTRY}/${IMAGE_NAME}/django-app:${GITHUB_SHA_SHORT}
-          docker run --rm ${IMAGE} python manage.py migrate
+          docker run --rm --env-file .env ${IMAGE} python manage.py migrate

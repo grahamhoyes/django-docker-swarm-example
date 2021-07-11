@@ -23,3 +23,4 @@ Start by reading about :ref:`the Django project<The Project>` that this example 
    :maxdepth: 2
 
    theproject
+   serversetup

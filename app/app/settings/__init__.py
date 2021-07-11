@@ -91,7 +91,7 @@ DATABASES = {
 
 # Cache
 # https://docs.djangoproject.com/en/3.1/topics/cache/
-REDIS_URI = os.environ.get("REDIS_URI", "172.17.0.1:6379/1")
+REDIS_URI = os.environ.get("REDIS_URI", "127.0.0.1:6379/1")
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",

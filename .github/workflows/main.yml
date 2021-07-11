@@ -120,10 +120,6 @@ jobs:
           # Make the media directory if it doesn't already exist
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SWARM_MANAGER_IP }} mkdir -p /var/www/${{ github.repository }}/media/
 
-          curl -s https://raw.githubusercontent.com/sudo-bmitch/docker-stack-wait/main/docker-stack-wait.sh \
-            -o docker-stack-wait.sh
-          chmod +x docker-stack-wait.sh
-
           echo "Logging in to GitHub packages..."
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 

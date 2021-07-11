@@ -19,6 +19,21 @@ To begin, fork `the grahamhoyes/django-docker-swarm-example <https://github.com/
 
 Start by reading about :ref:`the Django project<The Project>` that this example uses. From there, follow the pages to configure servers, github actions, and the deployment.
 
+Credits
+-------
+
+The following resources were a great help in developing this example:
+
+* https://github.com/testdrivenio/django-github-digitalocean
+* https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+* https://github.com/appleboy/scp-action
+* https://github.com/appleboy/ssh-action
+* https://stackoverflow.com/questions/47941075/host-django-on-subfolder/47945170#47945170
+* https://github.com/sudo-bmitch/docker-stack-wait
+
+Index
+-----
+
 .. toctree::
    :maxdepth: 2
 

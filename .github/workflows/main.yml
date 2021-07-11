@@ -117,9 +117,6 @@ jobs:
         env:
           DOCKER_HOST: ssh://${{ secrets.SSH_USER }}@${{ secrets.SWARM_MANAGER_IP }}
         run: |
-          # Make the media directory if it doesn't already exist
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SWARM_MANAGER_IP }} mkdir -p /var/www/${{ github.repository }}/media/
-
           echo "Logging in to GitHub packages..."
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 

@@ -234,9 +234,7 @@ Deployment happens by pointing the docker CLI in the actions runner to the docke
 
 Finally, the actual deploy runs. The ``DOCKER_HOST`` environment variable is set to point the docker CLI to the swarm manager.
 
-First, a ``mkdir`` command is directly executed over SSH to create the media folder for user-uploaded content at ``/var/www/<username>/<repository>/<media>/``. This can be changed by changing this line, and changing the volume mount for the django service in `deployment/docker-compose.prod.yml <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_.
-
-Next, we log in to GitHub packages with docker, this time manually instead of using an action. To use a different container registry, change the registry, username, and password here as well.
+First, we log in to GitHub packages with docker, this time manually instead of using an action. To use a different container registry, change the registry, username, and password here as well.
 
 We then bring up the deployment with ``docker stack deploy``, using `deployment/docker-compose.prod.yml <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_ as the stack. ``--with-registry-auth`` passes the GitHub packages credentials to swarm nodes so they can pull the image. ``--prune`` removes old containers after the deploy succeeds.
 
@@ -250,9 +248,6 @@ Finally, migrations are ran. This currently uses a workaround, since there is a 
       env:
         DOCKER_HOST: ssh://${{ secrets.SSH_USER }}@${{ secrets.SWARM_MANAGER_IP }}
       run: |
-        # Make the media directory if it doesn't already exist
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SWARM_MANAGER_IP }} mkdir -p /var/www/${{ github.repository }}/media/
-
         echo "Logging in to GitHub packages..."
         echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 

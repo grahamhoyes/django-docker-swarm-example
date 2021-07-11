@@ -226,7 +226,7 @@ Folder Setup
 
 There are two persistent folders required for deployment: a folder for static files, and a folder for user-uploaded media files.
 
-The workflow is configured to send static files to ``/usr/src/<username>/<repository>/static/``, which is served by nginx (see the :ref:`nginx config <nginx-config>`). We need to create the repository folder, and assign permissions to the user the deploy will be running as. Replace ``<username>/<repository>`` below with your username and repository, for example ``grahamhoyes/django-swarm-example``:
+The workflow is configured to send static files to ``/usr/src/<username>/<repository>/static/``, which is served by nginx (see the :ref:`nginx config <nginx-config>`). We need to create the repository folder, and assign permissions to the user the deploy will be running as. Replace ``<username>/<repository>`` below with your username and repository, for example ``grahamhoyes/django-docker-swarm-example``:
 
 .. code-block:: console
 

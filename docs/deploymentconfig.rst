@@ -3,6 +3,8 @@ Deployment Configuration
 
 For this example, we use GitHub repository secrets to manage our deployment secrets, and GitHub Actions to run the deployment pipeline. You could substitute these for a CI runner of your choice (CircleCI, Jenkins, etc).
 
+.. _secrets:
+
 Secrets
 -------
 Sensitive credentials, such as the database username and password, are stored in GitHub repository secrets. See the `GitHub docs on secrets <https://docs.github.com/en/actions/reference/encrypted-secrets>`_ for more information on how to setup repository secrets.
@@ -203,7 +205,7 @@ Next, we set all of the necessary environment variables for the deployment in a 
 
 The static files are then transferred to the server over scp using `scp-action <https://github.com/appleboy/scp-action>`_, which compresses the files while in transit for efficiency. This action doesn't obey the ``working-directory`` of the job, so we have to use absolute paths.
 
-Files on the server are sent to ``/usr/src/<username>/<repository>``, so make sure the user you are using for SCP/SSH has the necessary permissions. If you change this, make sure to change the nginx config as well. ``strip_components: 1`` removes the first folder in the file path, which in our case strips ``deployment/`` out when sending the files to the server.
+Files on the server are sent to ``/usr/src/<username>/<repository>``, so make sure the user you are using for SCP/SSH has the necessary permissions. If you change this, make sure to change the nginx config as well. ``strip_components: 1`` removes the first folder in the file path, which in our case strips ``app/`` out when sending the files to the server.
 
 .. code-block:: yaml
 
@@ -219,7 +221,7 @@ Files on the server are sent to ``/usr/src/<username>/<repository>``, so make su
         target: "/usr/src/${{ github.repository }}"
         strip_components: 1
 
-Deployment happens by pointing the docker CLI in the actions runner to the docker engine on the swarm manager over SSH. To do so, we first install the SSH private key for our deploy user on the actions urnner.
+Deployment happens by pointing the docker CLI in the actions runner to the docker engine on the swarm manager over SSH. To do so, we first install the SSH private key for our deploy user on the actions runner.
 
 .. code-block:: yaml
 

@@ -144,6 +144,8 @@ To confirm that the database and user were created correctly, launch a psql shel
 
     $ psql -d djangodb -h 127.0.0.1 -U djangouser
 
+.. _nginx-config:
+
 Install and Configure Nginx
 ---------------------------
 
@@ -218,6 +220,33 @@ Enter an email address for renewal and security notices, and accept the Terms of
 If you now open the nginx config file (``/etc/nginx/sites-available/django-swarm-example.conf``), you will notice a few lines have been added by certbot to tie in the SSL certificates, and redirect all HTTP traffic to HTTPS. You can continue making changes to this file as necessary. If you need to disable HTTPS in the future, remove all the lines added by certbot.
 
 If you visit your domain now, you should be met with a "502 Bad Gateway" page, but the connection should be over HTTPS.
+
+Folder Setup
+------------
+
+There are two persistent folders required for deployment: a folder for static files, and a folder for user-uploaded media files.
+
+The workflow is configured to send static files to ``/usr/src/<username>/<repository>/static/``, which is served by nginx (see the :ref:`nginx config <nginx-config>`). We need to create the repository folder, and assign permissions to the user the deploy will be running as. Replace ``<username>/<repository>`` below with your username and repository, for example ``grahamhoyes/django-swarm-example``:
+
+.. code-block:: console
+
+    $ sudo mkdir -p /usr/src/<username>/<repository>
+    $ sudo chown -R deploy:deploy /usr/src/<username>/<repository>
+    $ sudo chmod -R 755 /usr/src/<username>/<repository>
+
+User-uploaded media files are configured to go to ``/var/www/<username>/<repository>/media/``, via the volume mount in `deployment/docker-compose.prod.yml <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_. Create and set permissions on that folder as well, substituting your username, repository, and deploy user:
+
+.. code-block:: console
+
+    $ sudo mkdir -p /var/www/<username>/<repository>/media
+    $ sudo chown -R deploy:deploy /var/www/<username>/<repository>/media
+    $ sudo chmod -R 751 /var/www/<username>/<repository>/media
+
+.. note::
+    When the django container runs, it will run as the ``root`` user internally. When it writes media files via the volume mount, they will be owned by ``root:root`` as a result. The ``751`` permissions octal above will give the ``deploy`` user rwx permissions, the ``deploy`` group rx permissions, and other users only execute permissions. If you would like media files to be accessible manually outside of django, there are two options:
+
+    * Change the final byte of the permissions octal to something that allows reading from any user, like ``755``
+    * Change the user that the django container runs as to match your deploy user. This involves finding the user and group IDs of your deploy user, creating a :ref:`GitHub secret <secrets>` for  them, and passing them in to ``docker-compose.prod.yml`` via the ``user`` key. See this `Stack Overflow post <https://stackoverflow.com/a/56904335>`_ for more information.
 
 .. _ssh-keys:
 

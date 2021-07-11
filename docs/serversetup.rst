@@ -100,6 +100,8 @@ You can now ``exit`` out of the postgres user and return to whatever user accoun
 
     $ exit
 
+.. _configure-connection-rules:
+
 Configure Connection Rules
 ++++++++++++++++++++++++++
 
@@ -216,6 +218,8 @@ Enter an email address for renewal and security notices, and accept the Terms of
 If you now open the nginx config file (``/etc/nginx/sites-available/django-swarm-example.conf``), you will notice a few lines have been added by certbot to tie in the SSL certificates, and redirect all HTTP traffic to HTTPS. You can continue making changes to this file as necessary. If you need to disable HTTPS in the future, remove all the lines added by certbot.
 
 If you visit your domain now, you should be met with a "502 Bad Gateway" page, but the connection should be over HTTPS.
+
+.. _ssh-keys:
 
 SSH Keys
 --------

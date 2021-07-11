@@ -24,3 +24,4 @@ Start by reading about :ref:`the Django project<The Project>` that this example 
 
    theproject
    serversetup
+   deploymentconfig

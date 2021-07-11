@@ -15,7 +15,7 @@ Create a server using your cloud provider of choice. For this example, I am usin
         # usermod -aG sudo yourname
         # cp -r /root/.ssh /home/yourname
         # chown -R yourname:yourname /home/yourname/.ssh
-        # chmod -R 0600 /home/yourname/.ssh/*
+        # chmod -R 600 /home/yourname/.ssh/*
 
     Log out, then log back in using ``ssh yourname@<server IP>``.
 
@@ -144,3 +144,105 @@ To confirm that the database and user were created correctly, launch a psql shel
 
 Install and Configure Nginx
 ---------------------------
+
+Nginx will run on the host, and will handle static file service, SSL, and act as a reverse proxy to the swarm cluster. Install nginx:
+
+.. code-block:: console
+
+    $ sudo apt install nginx
+
+At this point, it is helpful, but not required, to have a domain. This example uses ``django-swarm-example.grahamhoyes.com``, which you may substitute for your own domain. SSL should be used in production, which if using letsencrypt for free certificates, requires a domain. If not using SSL, you may substitute the domain name below with the public IP address of your server. Whichever approach you choose, make sure to include it in ``ALLOWED_HOSTS`` of the main django settings file.
+
+Create a new config file in ``/etc/nginx/sites-available/``, for example ``/etc/nginx/sites-available/django-swarm-example.conf``, with the following contents (substituting in your domain and repository path). Static files are placed in ``/usr/src/<username>/<repository>/static`` by default, which you can customize in the `workflow <https://github.com/grahamhoyes/django-docker-swarm-example/#deploy>`_.
+
+.. code-block:: text
+
+    upstream django_server {
+        server localhost:8000;
+    }
+
+    server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+
+        server_name django-swarm-example.grahamhoyes.com;
+
+        location / {
+            proxy_pass http://django_server;
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $host;
+            proxy_set_header X-Script-Name /;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location /static {
+            # Replace this path with /usr/src/<your username>/<repository>/static
+            alias /usr/src/grahamhoyes/django-docker-swarm-example/static/;
+        }
+    }
+
+The `production docker-compose file <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_ that defines the swarm stack runs django on port 8000 (using gunicorn, not the development server), hence the port within the upstream block. This can be easily changed.
+
+Disable the default nginx site, and enable the one you just created by creating a symlink:
+
+.. code-block:: console
+
+    $ sudo rm /etc/nginx/sites-enabled/default
+    $ sudo ln -s /etc/nginx/sites-available/django-swarm-example.conf /etc/nginx/sites-enabled/django-swarm-example.conf
+
+Reload nginx for the changes to take effect:
+
+.. code-block:: console
+
+    $ sudo service nginx reload
+
+Optional (not really): SSL from Let's Encrypt
++++++++++++++++++++++++++++++++++++++++++++++
+
+`Certbot <https://certbot.eff.org/>`_ is a tool for automating obtaining and renewing SSL certificates from Let's Encrypt. Let's Encrypt requires that you have a domain, so if you did not include a domain name in the nginx configuration file, then skip this step.
+
+Follow the instructions `here <https://certbot.eff.org/lets-encrypt/ubuntufocal-nginx>`_ to install certbot for Ubuntu 20.04 and Nginx (or your choice of OS and web server).
+
+Once you've installed certbot and have the ``certbot`` command setup, we can let certbot do all the heavy lifting for us to set up SSL for our newly configured nginx site:
+
+.. code-block:: console
+
+    $ sudo certbot --nginx
+
+Enter an email address for renewal and security notices, and accept the Terms of Service. When asked which names you would like to activate HTTPS for, enter the number of the site you just added (which will probably be 1). Certbot will obtain an SSL certificate, and will automatically manage renewing it.
+
+If you now open the nginx config file (``/etc/nginx/sites-available/django-swarm-example.conf``), you will notice a few lines have been added by certbot to tie in the SSL certificates, and redirect all HTTP traffic to HTTPS. You can continue making changes to this file as necessary. If you need to disable HTTPS in the future, remove all the lines added by certbot.
+
+If you visit your domain now, you should be met with a "502 Bad Gateway" page, but the connection should be over HTTPS.
+
+SSH Keys
+--------
+
+Since we do not want to expose the Docker API, deploying happens by pointing the docker CLI running in GitHub Actions to a remote docker engine (running on our server) over SSH. SSH is also used to transfer over static files. We'll need an SSH key to do that.
+
+If you're using a separate ``deploy`` user, switch to that user now:
+
+.. code-block:: console
+
+    $ sudo su - deploy
+
+Generate an ssh key, filling in your email address:
+
+.. code-block:: console
+
+    $ ssh-keygen -t rsa -b 4096 -C "you@example.com"
+
+If you want to save the file somewhere other than ``~/.ssh/id_rsa`` you may do so, and update the commands below accordingly. Do not set a passphrase, as this key will be used by the automated GitHub Actions runner.
+
+Add the public key to the user's authorized keys, and give the file the correct permissions:
+
+.. code-block:: console
+
+    $ cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+    $ chmod 600 ~/.ssh/authorized_keys
+
+Make note of which user's ``authorized_keys`` file you added the public key to (i.e., which user you logged in as or switched to), as this will be the user that deployment happens through. The user will need to have appropriate docker permissions, which if this guide was followed properly, they should have.
+
+In the next section, we will set this user in the ``SSH_USER`` GitHub secret. The entire contents of the SSH private key (``cat ~/.ssh/id_rsa``) will be set in the ``SSH_PRIVATE_KEY`` secret.

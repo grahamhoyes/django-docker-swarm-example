@@ -164,3 +164,18 @@ To run the project:
 This will start the Postgres, Redis, and Django containers, the latter of which will wait for Postgres to be available (via the `entrypoint.sh <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/development/entrypoint.sh>`_). The django service will run migrations as soon as the postgres connection is established.
 
 Once all containers are up, you can access the server at http://localhost:8000/. The first time you visit, you should see ``{"hits": 1, "cache-hits": 1}``. The counters will increase with every subsequent visit, with the cache hits resetting after about 10 minutes of inactivity.
+
+Configuration for Deployment
+----------------------------
+
+The project is almost entirely ready for deployment as-is, since most configuration options are pulled in as environment variables. You will, however, need to set the ``ALLOWED_HOSTS`` setting in the main settings file to include your domain. In this example, we use ``django-swarm-example.grahamhoyes.com``. A domain is highly recommended so that letsencrypt can be used for SSL certificates later on, but you can also substitute with your server's public IP address:
+
+.. code-block:: python
+
+    # app/settings/__init__.py
+    ...
+    if DEBUG:
+        ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+    else:
+        # Include your domain or IP address here
+        ALLOWED_HOSTS = ["django-swarm-example.grahamhoyes.com"]

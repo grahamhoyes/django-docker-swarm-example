@@ -57,6 +57,33 @@ The swarm deployment can run as any user with SSH and docker privileges. If you 
 
     To prevent a possible avenue for brute-force attacks, you should give your deploy user a non-generic name (something better than ``deployer``, which we use here for simplicity).
 
+Folder Setup
+------------
+
+There are two persistent folders required for deployment: a folder for static files, and a folder for user-uploaded media files.
+
+The workflow is configured to send static files to ``/usr/src/<username>/<repository>/static/``, which is served by nginx (see the :ref:`nginx config <nginx-config>`). We need to create the repository folder, and assign permissions to the user the deploy will be running as. Replace ``<username>/<repository>`` below with your username and repository, for example ``grahamhoyes/django-docker-swarm-example``:
+
+.. code-block:: console
+
+    $ sudo mkdir -p /usr/src/<username>/<repository>
+    $ sudo chown -R deployer:deployer /usr/src/<username>/<repository>
+    $ sudo chmod -R 755 /usr/src/<username>/<repository>
+
+User-uploaded media files are configured to go to ``/var/www/<username>/<repository>/media/``, via the volume mount in `deployment/docker-compose.prod.yml <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_. Create and set permissions on that folder as well, substituting your username, repository, and deploy user:
+
+.. code-block:: console
+
+    $ sudo mkdir -p /var/www/<username>/<repository>/media
+    $ sudo chown -R deployer:deployer /var/www/<username>/<repository>/media
+    $ sudo chmod -R 751 /var/www/<username>/<repository>/media
+
+.. note::
+    When the django container runs, it will run as the ``root`` user internally. When it writes media files via the volume mount, they will be owned by ``root:root`` as a result. The ``751`` permissions octal above will give the ``deployer`` user rwx permissions, the ``deployer`` group rx permissions, and other users only execute permissions. If you would like media files to be accessible manually outside of django, there are two options:
+
+    * Change the final byte of the permissions octal to something that allows reading from any user, like ``755``
+    * Change the user that the django container runs as to match your deploy user. This involves finding the user and group IDs of your deploy user, creating a :ref:`GitHub secret <secrets>` for  them, and passing them in to ``docker-compose.prod.yml`` via the ``user`` key. See this `Stack Overflow post <https://stackoverflow.com/a/56904335>`_ for more information.
+
 Install and Configure Postgres
 ------------------------------
 
@@ -236,32 +263,20 @@ If you now open the nginx config file (``/etc/nginx/sites-available/django-swarm
 
 If you visit your domain now, you should be met with a "502 Bad Gateway" page, but the connection should be over HTTPS.
 
-Folder Setup
-------------
+Optional: Serving Media Files
++++++++++++++++++++++++++++++
 
-There are two persistent folders required for deployment: a folder for static files, and a folder for user-uploaded media files.
+Media files (user-uploaded content) are placed under ``/var/www/<username>/<repository>/media`` by default. There is no logic in the django app to actually serve these right now, but typically you would want to create a view that will authenticate a user before allowing them access to media files. Sending files back through django is not great for performance, `here's an article <https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/apache-auth/>`_ on how to integrate django authentication with Apache (I will update this tutorial when I have figured out how for nginx).
 
-The workflow is configured to send static files to ``/usr/src/<username>/<repository>/static/``, which is served by nginx (see the :ref:`nginx config <nginx-config>`). We need to create the repository folder, and assign permissions to the user the deploy will be running as. Replace ``<username>/<repository>`` below with your username and repository, for example ``grahamhoyes/django-docker-swarm-example``:
+For now, we can configure nginx to serve media files by adding the following location block:
 
-.. code-block:: console
+.. code-block:: text
 
-    $ sudo mkdir -p /usr/src/<username>/<repository>
-    $ sudo chown -R deployer:deployer /usr/src/<username>/<repository>
-    $ sudo chmod -R 755 /usr/src/<username>/<repository>
+    location /media {
+        # Replace this path with /var/www/<your username>/<repository>/media
+        alias /var/www/grahamhoyes/django-docker-swarm-example/media/;
+    }
 
-User-uploaded media files are configured to go to ``/var/www/<username>/<repository>/media/``, via the volume mount in `deployment/docker-compose.prod.yml <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_. Create and set permissions on that folder as well, substituting your username, repository, and deploy user:
-
-.. code-block:: console
-
-    $ sudo mkdir -p /var/www/<username>/<repository>/media
-    $ sudo chown -R deployer:deployer /var/www/<username>/<repository>/media
-    $ sudo chmod -R 751 /var/www/<username>/<repository>/media
-
-.. note::
-    When the django container runs, it will run as the ``root`` user internally. When it writes media files via the volume mount, they will be owned by ``root:root`` as a result. The ``751`` permissions octal above will give the ``deployer`` user rwx permissions, the ``deployer`` group rx permissions, and other users only execute permissions. If you would like media files to be accessible manually outside of django, there are two options:
-
-    * Change the final byte of the permissions octal to something that allows reading from any user, like ``755``
-    * Change the user that the django container runs as to match your deploy user. This involves finding the user and group IDs of your deploy user, creating a :ref:`GitHub secret <secrets>` for  them, and passing them in to ``docker-compose.prod.yml`` via the ``user`` key. See this `Stack Overflow post <https://stackoverflow.com/a/56904335>`_ for more information.
 
 .. _ssh-keys:
 

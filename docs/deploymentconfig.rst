@@ -305,7 +305,7 @@ Post-Deploy
 Creating an Admin User
 ++++++++++++++++++++++
 
-After deploying, you will probably want to create an admin user to log in to the admin site with. The easiest way to do this is to run `python manage.py createsuperuser` inside the django container that was deployed on the swarm manager.
+After deploying, you will probably want to create an admin user to log in to the admin site with. The easiest way to do this is to run ``python manage.py createsuperuser`` inside the django container that was deployed on the swarm manager.
 
 To do that, SSH into your swarm manager, and run the following to print to container ID of the django container. ``<stack_name>`` is whatever stack name you have set in the workflow file, for this example it is ``django-swarm-example``.
 
@@ -319,4 +319,4 @@ Once you have the container ID (which you could also just read from the output o
 
     $ docker exec -it <container id> python manage.py createsuperuser
 
-You should now be able to visit `<yourdomain>/admin`, and log in with the newly created account.
+You should now be able to visit ``<yourdomain>/admin``, and log in with the newly created account.

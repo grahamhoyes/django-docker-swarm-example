@@ -46,12 +46,16 @@ In this section, we will be working on a single-node swarm. For a full example o
 Optional: Create a Deployment User
 ++++++++++++++++++++++++++++++++++
 
-The swarm deployment can run as any user with SSH and docker privileges. If you would like to run the deployment as whatever user you SSHd in with, you can skip this step. Otherwise, create a new user (which we will call ``deploy``) and add them to the ``docker`` group:
+The swarm deployment can run as any user with SSH and docker privileges. If you would like to run the deployment as whatever user you SSHd in with, you can skip this step. Otherwise, create a new user (which we will call ``deployer``) and add them to the ``docker`` group:
 
 .. code-block:: console
 
-    $ sudo adduser deploy
-    $ sudo usermod -aG docker deploy
+    $ sudo adduser deployer
+    $ sudo usermod -aG docker deployer
+
+.. note::
+
+    To prevent a possible avenue for brute-force attacks, you should give your deploy user a non-generic name (something better than ``deployer``, which we use here for simplicity).
 
 Install and Configure Postgres
 ------------------------------
@@ -231,7 +235,7 @@ The workflow is configured to send static files to ``/usr/src/<username>/<reposi
 .. code-block:: console
 
     $ sudo mkdir -p /usr/src/<username>/<repository>
-    $ sudo chown -R deploy:deploy /usr/src/<username>/<repository>
+    $ sudo chown -R deployer:deployer /usr/src/<username>/<repository>
     $ sudo chmod -R 755 /usr/src/<username>/<repository>
 
 User-uploaded media files are configured to go to ``/var/www/<username>/<repository>/media/``, via the volume mount in `deployment/docker-compose.prod.yml <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_. Create and set permissions on that folder as well, substituting your username, repository, and deploy user:
@@ -239,11 +243,11 @@ User-uploaded media files are configured to go to ``/var/www/<username>/<reposit
 .. code-block:: console
 
     $ sudo mkdir -p /var/www/<username>/<repository>/media
-    $ sudo chown -R deploy:deploy /var/www/<username>/<repository>/media
+    $ sudo chown -R deployer:deployer /var/www/<username>/<repository>/media
     $ sudo chmod -R 751 /var/www/<username>/<repository>/media
 
 .. note::
-    When the django container runs, it will run as the ``root`` user internally. When it writes media files via the volume mount, they will be owned by ``root:root`` as a result. The ``751`` permissions octal above will give the ``deploy`` user rwx permissions, the ``deploy`` group rx permissions, and other users only execute permissions. If you would like media files to be accessible manually outside of django, there are two options:
+    When the django container runs, it will run as the ``root`` user internally. When it writes media files via the volume mount, they will be owned by ``root:root`` as a result. The ``751`` permissions octal above will give the ``deployer`` user rwx permissions, the ``deployer`` group rx permissions, and other users only execute permissions. If you would like media files to be accessible manually outside of django, there are two options:
 
     * Change the final byte of the permissions octal to something that allows reading from any user, like ``755``
     * Change the user that the django container runs as to match your deploy user. This involves finding the user and group IDs of your deploy user, creating a :ref:`GitHub secret <secrets>` for  them, and passing them in to ``docker-compose.prod.yml`` via the ``user`` key. See this `Stack Overflow post <https://stackoverflow.com/a/56904335>`_ for more information.
@@ -255,11 +259,11 @@ SSH Keys
 
 Since we do not want to expose the Docker API, deploying happens by pointing the docker CLI running in GitHub Actions to a remote docker engine (running on our server) over SSH. SSH is also used to transfer over static files. We'll need an SSH key to do that.
 
-If you're using a separate ``deploy`` user, switch to that user now:
+If you're using a separate ``deployer`` user, switch to that user now:
 
 .. code-block:: console
 
-    $ sudo su - deploy
+    $ sudo su - deployer
 
 Generate an ssh key, filling in your email address:
 

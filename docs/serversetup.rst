@@ -73,7 +73,7 @@ You can verify the install succeeded by running ``sudo service postgresql status
 Create the Database
 +++++++++++++++++++
 
-By default, postgres requires you to be teh ``postgres`` user/role in order to connect. Switch into the ``postgres`` user:
+By default, postgres requires you to be the ``postgres`` user/role in order to connect. Switch into the ``postgres`` user:
 
 .. code-block:: console
 
@@ -118,6 +118,16 @@ Inspect the network to confirm the gateway address:
     $ docker network inspect docker_gwbridge --format="{{range .IPAM.Config}}{{.Gateway}}{{end}}"
     172.18.0.1
 
+In addition, we will also need the address of the regular ``bridge`` network, which is used to run migrations (the container running migrations is not part of the swarm deployment). This is usually on ``172.17.0.0/16``, but confirm this as well:
+
+.. code-block:: console
+
+    $ docker network inspect bridge
+
+.. note::
+
+    The bridge network may not always report a gateway. If you see, for example, ``172.17.0.0/16`` listed as the subnet, you can use ``172.17.0.1`` as the gateway address below.
+
 Postgres' configuration file is at ``/etc/postgresql/<version>/main/postgresql.conf``, where ``<version>`` is the version you installed (13 at the time of writing). Look for the line containing ``listen_address``, which by default will be commented out:
 
 .. code-block:: console
@@ -130,9 +140,10 @@ Open up the file in your editor of choice (with ``sudo``), uncomment the line, a
 
     listen_addresses = 'localhost,172.18.0.1'
 
-This host also needs to be added to the client authentication configuration file in ``/etc/postgresql/<version>/main/pg_hba.conf``. Add the following under ``# IPv4 local connections`` (changing the address to that of ``docker_gwbridge`` if necessary)::
+This host also needs to be added to the client authentication configuration file in ``/etc/postgresql/<version>/main/pg_hba.conf``. Add the following under ``# IPv4 local connections`` (changing the addresses to those of ``docker_gwbridge`` and ``bridge`` if necessary)::
 
     host    djangodb        djangouser      172.18.0.1/16           md5
+    host    djangodb        djangouser      172.17.0.1/16           md5
 
 The second column is the database and the third is the user, you can change them to ``all`` if you don't want to limit connections to only the newly created user and database.
 

@@ -240,7 +240,7 @@ We then bring up the deployment with ``docker stack deploy``, using `deployment/
 
 After launching the stack, the workflow waits up to 300 seconds for the stack to deploy using `docker-stack-wait <https://github.com/sudo-bmitch/docker-stack-wait>`_. The shell script is included as part of this repository, rather than pulling it from an external source while running.
 
-Finally, migrations are ran. This currently uses a workaround, since there is a bug preventing running ``docker-compose exec`` with a docker host over SSH.
+Finally, migrations are ran. This currently uses a workaround, since there is a bug preventing running ``docker-compose exec`` with a docker host over SSH. Because we are running the container directly with ``docker run``, the container lives outside of the swarm bridge network, on the regular docker bridge network. This is why we allowed ``172.17.0.1`` when :ref:`configuring postgres connection rules <configure-connection-rules>`.
 
 .. code-block:: yaml
 

@@ -234,5 +234,70 @@ Finally, the actual deploy runs. The ``DOCKER_HOST`` environment variable is set
 
 First, a ``mkdir`` command is directly executed over SSH to create the media folder for user-uploaded content at ``/var/www/<username>/<repository>/<media>/``. This can be changed by changing this line, and changing the volume mount for the django service in `deployment/docker-compose.prod.yml <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_.
 
+Next, we log in to GitHub packages with docker, this time manually instead of using an action. To use a different container registry, change the registry, username, and password here as well.
+
+We then bring up the deployment with ``docker stack deploy``, using `deployment/docker-compose.prod.yml <https://github.com/grahamhoyes/django-docker-swarm-example/blob/master/deployment/docker-compose.prod.yml>`_ as the stack. ``--with-registry-auth`` passes the GitHub packages credentials to swarm nodes so they can pull the image. ``--prune`` removes old containers after the deploy succeeds.
+
+After launching the stack, the workflow waits up to 300 seconds for the stack to deploy using `docker-stack-wait <https://github.com/sudo-bmitch/docker-stack-wait>`_. The shell script is included as part of this repository, rather than pulling it from an external source while running.
+
+Finally, migrations are ran. This currently uses a workaround, since there is a bug preventing running ``docker-compose exec`` with a docker host over SSH.
+
+.. code-block:: yaml
+
+    - name: Bring up deployment
+      env:
+        DOCKER_HOST: ssh://${{ secrets.SSH_USER }}@${{ secrets.SWARM_MANAGER_IP }}
+      run: |
+        # Make the media directory if it doesn't already exist
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SWARM_MANAGER_IP }} mkdir -p /var/www/${{ github.repository }}/media/
+
+        echo "Logging in to GitHub packages..."
+        echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+        echo "Bringing up deployment..."
+        docker stack deploy --prune --with-registry-auth -c docker-compose.prod.yml ${{ env.STACK_NAME }}
+
+        echo "Waiting for deployment..."
+        sleep 30
+        ./docker-stack-wait.sh -t 300 ${{ env.STACK_NAME }}
+
+        echo "Running migrations..."
+        # TODO: It would be better to use docker-compose against the django service,
+        # but there is currently a bug in docker-compose preventing running services
+        # over an SSH host.
+        IMAGE=${REGISTRY}/${IMAGE_NAME}/django-app:${GITHUB_SHA_SHORT}
+        docker run --rm --env-file .env ${IMAGE} python manage.py migrate
+
+
 Optional: Triggering for Pull Requests from Forks
 +++++++++++++++++++++++++++++++++++++++++++++++++
+
+In an open source project, you will probably want pull requests from forks to also run the checks stage. To do that, I recommend splitting the workflow above into two files: ``main.yml`` and ``deploy.yml``.
+
+``deploy.yml`` should be the same as the workflow described above, with some minor changes:
+
+* Change the branch pattern at the top of the workflow to just ``'master'`` instead of ``'**'``
+* Remove the ``checks`` job entirely
+* For cleanliness, remove the ``if: github.ref == 'refs/heads/master'`` line from the ``build`` and ``deploy`` jobs, since that is covered by the updated branch pattern.
+
+``checks.yml`` should only contain the ``checks`` job, and does not need the ``env`` section at the top of the default workflow. To allow secrets to be passed to PRs running from forks, change the top section to:
+
+.. code-block:: yaml
+
+    on:
+      pull_request_target:
+        branches:
+          - '**'
+
+The ``pull_request_target`` event runs in the base context of the pull request, rather than the merge commit. This prevents forks from modifying the workflow to just print out your secrets. You can read more about it `here <https://docs.github.com/en/actions/reference/events-that-trigger-workflows#pull_request_target>`_.
+
+We want the workflow to run in the context of the base repository (i.e, using the workflow from the base repository), but we still want it to check out code from the fork. To do that, we need to update the checkout step:
+
+.. code-block:: yaml
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+
+With that change, the ``checks.yml`` workflow will run code from pull requests using the workflow in the base repository. ``deploy.yml`` will only run on pushes to the ``master`` branch, using the workflow from the merge commit.

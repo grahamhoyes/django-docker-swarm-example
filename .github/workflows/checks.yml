@@ -1,0 +1,30 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Lint
+        run: black --check .
+      - name: Tests
+        env:
+          SECRET_KEY: ${{ secrets.CI_SECRET_KEY }}
+        run: python manage.py test --settings=app.settings.ci

@@ -105,7 +105,7 @@ jobs:
           overwrite: true
           # scp-action doesn't obey working-directory, runs at repo root
           source: "app/static/"
-          target: "/usr/src/${{ github.repository }}"
+          target: "/usr/src/${IMAGE_NAME}"
           strip_components: 1
       - name: Set up SSH
         run: |

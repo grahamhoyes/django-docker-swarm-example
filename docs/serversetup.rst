@@ -277,6 +277,11 @@ For now, we can configure nginx to serve media files by adding the following loc
         alias /var/www/grahamhoyes/django-docker-swarm-example/media/;
     }
 
+Reload nginx for the changes to take effect:
+
+.. code-block:: console
+
+    $ sudo service nginx reload
 
 .. _ssh-keys:
 

@@ -1,9 +1,14 @@
 name: Deploy
 
 on:
-  release:
-    types:
-      - 'released'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag'
+        required: true
+      release_name:
+        description: 'Release name'
+        required: true
 
 env:
   REGISTRY: ghcr.io
